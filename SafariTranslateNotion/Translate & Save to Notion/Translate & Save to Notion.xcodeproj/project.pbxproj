@@ -43,6 +43,8 @@
 		1B211A092F4EECBA00A18B2C /* options.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FB2F4EECBA00A18B2C /* options.html */; };
 		1B211A0A2F4EECBA00A18B2C /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FC2F4EECBA00A18B2C /* content.js */; };
 		1B211A0B2F4EECBA00A18B2C /* options.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FD2F4EECBA00A18B2C /* options.css */; };
+		AA0000022F4EECBA00A18B2C /* images in Resources */ = {isa = PBXBuildFile; fileRef = AA0000012F4EECBA00A18B2C /* images */; };
+		AA0000032F4EECBA00A18B2C /* images in Resources */ = {isa = PBXBuildFile; fileRef = AA0000012F4EECBA00A18B2C /* images */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -116,6 +118,7 @@
 		1B2119FB2F4EECBA00A18B2C /* options.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = options.html; path = ../../SafariTranslateNotionExtension/options.html; sourceTree = "<group>"; };
 		1B2119FC2F4EECBA00A18B2C /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../SafariTranslateNotionExtension/content.js; sourceTree = "<group>"; };
 		1B2119FD2F4EECBA00A18B2C /* options.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = options.css; path = ../../SafariTranslateNotionExtension/options.css; sourceTree = "<group>"; };
+		AA0000012F4EECBA00A18B2C /* images */ = {isa = PBXFileReference; lastKnownFileType = folder; name = images; path = ../../SafariTranslateNotionExtension/images; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -252,6 +255,7 @@
 				1B2119FB2F4EECBA00A18B2C /* options.html */,
 				1B2119FC2F4EECBA00A18B2C /* content.js */,
 				1B2119FD2F4EECBA00A18B2C /* options.css */,
+				AA0000012F4EECBA00A18B2C /* images */,
 			);
 			name = Resources;
 			path = "Shared (Extension)";
@@ -425,6 +429,7 @@
 				1B211A0B2F4EECBA00A18B2C /* options.css in Resources */,
 				1B211A072F4EECBA00A18B2C /* options.js in Resources */,
 				1B211A052F4EECBA00A18B2C /* content.css in Resources */,
+				AA0000022F4EECBA00A18B2C /* images in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -439,6 +444,7 @@
 				1B211A042F4EECBA00A18B2C /* options.css in Resources */,
 				1B211A002F4EECBA00A18B2C /* options.js in Resources */,
 				1B2119FE2F4EECBA00A18B2C /* content.css in Resources */,
+				AA0000032F4EECBA00A18B2C /* images in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
