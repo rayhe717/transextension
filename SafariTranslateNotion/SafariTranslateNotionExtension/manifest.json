@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Translate & Save to Notion",
+  "version": "1.0.0",
+  "description": "Translate selected text with DeepSeek and save vocabulary to Notion.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "https://api.deepseek.com/*",
+    "https://api.notion.com/*",
+    "https://*.notion.com/*",
+    "<all_urls>"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.deepseek.com https://api.notion.com https://*.notion.com"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "options_ui": {
+    "page": "options.html"
+  },
+  "action": {
+    "default_title": "Translate & Save to Notion"
+  }
+}

@@ -1,0 +1,1009 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1B2119AE2F4EECB900A18B2C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119AD2F4EECB900A18B2C /* AppDelegate.swift */; };
+		1B2119B02F4EECB900A18B2C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119AF2F4EECB900A18B2C /* SceneDelegate.swift */; };
+		1B2119B32F4EECB900A18B2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119B12F4EECB900A18B2C /* LaunchScreen.storyboard */; };
+		1B2119B62F4EECB900A18B2C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119B42F4EECB900A18B2C /* Main.storyboard */; };
+		1B2119BF2F4EECB900A18B2C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119BE2F4EECB900A18B2C /* AppDelegate.swift */; };
+		1B2119C22F4EECB900A18B2C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119C02F4EECB900A18B2C /* Main.storyboard */; };
+		1B2119C92F4EECB900A18B2C /* Translate & Save to Notion Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1B2119C82F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1B2119D32F4EECB900A18B2C /* Translate & Save to Notion Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1B2119D22F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1B2119D82F4EECB900A18B2C /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B21199D2F4EECB800A18B2C /* Main.html */; };
+		1B2119D92F4EECB900A18B2C /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B21199D2F4EECB800A18B2C /* Main.html */; };
+		1B2119DA2F4EECB900A18B2C /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1B21199F2F4EECB800A18B2C /* Icon.png */; };
+		1B2119DB2F4EECB900A18B2C /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1B21199F2F4EECB800A18B2C /* Icon.png */; };
+		1B2119DC2F4EECB900A18B2C /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119A02F4EECB800A18B2C /* Style.css */; };
+		1B2119DD2F4EECB900A18B2C /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119A02F4EECB800A18B2C /* Style.css */; };
+		1B2119DE2F4EECB900A18B2C /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119A12F4EECB800A18B2C /* Script.js */; };
+		1B2119DF2F4EECB900A18B2C /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119A12F4EECB800A18B2C /* Script.js */; };
+		1B2119E02F4EECB900A18B2C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119A22F4EECB800A18B2C /* ViewController.swift */; };
+		1B2119E12F4EECB900A18B2C /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119A22F4EECB800A18B2C /* ViewController.swift */; };
+		1B2119E22F4EECB900A18B2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119A32F4EECB900A18B2C /* Assets.xcassets */; };
+		1B2119E32F4EECB900A18B2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119A32F4EECB900A18B2C /* Assets.xcassets */; };
+		1B2119E42F4EECB900A18B2C /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119A52F4EECB900A18B2C /* SafariWebExtensionHandler.swift */; };
+		1B2119E52F4EECB900A18B2C /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2119A52F4EECB900A18B2C /* SafariWebExtensionHandler.swift */; };
+		1B2119FE2F4EECBA00A18B2C /* content.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F72F4EECBA00A18B2C /* content.css */; };
+		1B2119FF2F4EECBA00A18B2C /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F82F4EECBA00A18B2C /* background.js */; };
+		1B211A002F4EECBA00A18B2C /* options.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F92F4EECBA00A18B2C /* options.js */; };
+		1B211A012F4EECBA00A18B2C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FA2F4EECBA00A18B2C /* manifest.json */; };
+		1B211A022F4EECBA00A18B2C /* options.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FB2F4EECBA00A18B2C /* options.html */; };
+		1B211A032F4EECBA00A18B2C /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FC2F4EECBA00A18B2C /* content.js */; };
+		1B211A042F4EECBA00A18B2C /* options.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FD2F4EECBA00A18B2C /* options.css */; };
+		1B211A052F4EECBA00A18B2C /* content.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F72F4EECBA00A18B2C /* content.css */; };
+		1B211A062F4EECBA00A18B2C /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F82F4EECBA00A18B2C /* background.js */; };
+		1B211A072F4EECBA00A18B2C /* options.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F92F4EECBA00A18B2C /* options.js */; };
+		1B211A082F4EECBA00A18B2C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FA2F4EECBA00A18B2C /* manifest.json */; };
+		1B211A092F4EECBA00A18B2C /* options.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FB2F4EECBA00A18B2C /* options.html */; };
+		1B211A0A2F4EECBA00A18B2C /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FC2F4EECBA00A18B2C /* content.js */; };
+		1B211A0B2F4EECBA00A18B2C /* options.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FD2F4EECBA00A18B2C /* options.css */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1B2119CA2F4EECB900A18B2C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1B2119972F4EECB800A18B2C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1B2119C72F4EECB900A18B2C;
+			remoteInfo = "Translate & Save to Notion Extension (iOS)";
+		};
+		1B2119D42F4EECB900A18B2C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1B2119972F4EECB800A18B2C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1B2119D12F4EECB900A18B2C;
+			remoteInfo = "Translate & Save to Notion Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1B2119EB2F4EECB900A18B2C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1B2119C92F4EECB900A18B2C /* Translate & Save to Notion Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119F22F4EECB900A18B2C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1B2119D32F4EECB900A18B2C /* Translate & Save to Notion Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		1B21199E2F4EECB800A18B2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		1B21199F2F4EECB800A18B2C /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		1B2119A02F4EECB800A18B2C /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		1B2119A12F4EECB800A18B2C /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		1B2119A22F4EECB800A18B2C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		1B2119A32F4EECB900A18B2C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1B2119A52F4EECB900A18B2C /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		1B2119AA2F4EECB900A18B2C /* Translate & Save to Notion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Translate & Save to Notion.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B2119AD2F4EECB900A18B2C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1B2119AF2F4EECB900A18B2C /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		1B2119B22F4EECB900A18B2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1B2119B52F4EECB900A18B2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		1B2119B72F4EECB900A18B2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1B2119BC2F4EECB900A18B2C /* Translate & Save to Notion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Translate & Save to Notion.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B2119BE2F4EECB900A18B2C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1B2119C12F4EECB900A18B2C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		1B2119C32F4EECB900A18B2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1B2119C82F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Translate & Save to Notion Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B2119CD2F4EECB900A18B2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1B2119D22F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Translate & Save to Notion Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B2119D72F4EECB900A18B2C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1B2119F72F4EECBA00A18B2C /* content.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = content.css; path = ../../SafariTranslateNotionExtension/content.css; sourceTree = "<group>"; };
+		1B2119F82F4EECBA00A18B2C /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../SafariTranslateNotionExtension/background.js; sourceTree = "<group>"; };
+		1B2119F92F4EECBA00A18B2C /* options.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = options.js; path = ../../SafariTranslateNotionExtension/options.js; sourceTree = "<group>"; };
+		1B2119FA2F4EECBA00A18B2C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../SafariTranslateNotionExtension/manifest.json; sourceTree = "<group>"; };
+		1B2119FB2F4EECBA00A18B2C /* options.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = options.html; path = ../../SafariTranslateNotionExtension/options.html; sourceTree = "<group>"; };
+		1B2119FC2F4EECBA00A18B2C /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../SafariTranslateNotionExtension/content.js; sourceTree = "<group>"; };
+		1B2119FD2F4EECBA00A18B2C /* options.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = options.css; path = ../../SafariTranslateNotionExtension/options.css; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1B2119A72F4EECB900A18B2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119B92F4EECB900A18B2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119C52F4EECB900A18B2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119CF2F4EECB900A18B2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1B2119962F4EECB800A18B2C = {
+			isa = PBXGroup;
+			children = (
+				1B21199B2F4EECB800A18B2C /* Shared (App) */,
+				1B2119A42F4EECB900A18B2C /* Shared (Extension) */,
+				1B2119AC2F4EECB900A18B2C /* iOS (App) */,
+				1B2119BD2F4EECB900A18B2C /* macOS (App) */,
+				1B2119CC2F4EECB900A18B2C /* iOS (Extension) */,
+				1B2119D62F4EECB900A18B2C /* macOS (Extension) */,
+				1B2119AB2F4EECB900A18B2C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1B21199B2F4EECB800A18B2C /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119A22F4EECB800A18B2C /* ViewController.swift */,
+				1B2119A32F4EECB900A18B2C /* Assets.xcassets */,
+				1B21199C2F4EECB800A18B2C /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		1B21199C2F4EECB800A18B2C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1B21199D2F4EECB800A18B2C /* Main.html */,
+				1B21199F2F4EECB800A18B2C /* Icon.png */,
+				1B2119A02F4EECB800A18B2C /* Style.css */,
+				1B2119A12F4EECB800A18B2C /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		1B2119A42F4EECB900A18B2C /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119F62F4EECBA00A18B2C /* Resources */,
+				1B2119A52F4EECB900A18B2C /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		1B2119AB2F4EECB900A18B2C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119AA2F4EECB900A18B2C /* Translate & Save to Notion.app */,
+				1B2119BC2F4EECB900A18B2C /* Translate & Save to Notion.app */,
+				1B2119C82F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */,
+				1B2119D22F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1B2119AC2F4EECB900A18B2C /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119AD2F4EECB900A18B2C /* AppDelegate.swift */,
+				1B2119AF2F4EECB900A18B2C /* SceneDelegate.swift */,
+				1B2119B12F4EECB900A18B2C /* LaunchScreen.storyboard */,
+				1B2119B42F4EECB900A18B2C /* Main.storyboard */,
+				1B2119B72F4EECB900A18B2C /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		1B2119BD2F4EECB900A18B2C /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119BE2F4EECB900A18B2C /* AppDelegate.swift */,
+				1B2119C02F4EECB900A18B2C /* Main.storyboard */,
+				1B2119C32F4EECB900A18B2C /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		1B2119CC2F4EECB900A18B2C /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119CD2F4EECB900A18B2C /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		1B2119D62F4EECB900A18B2C /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119D72F4EECB900A18B2C /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		1B2119F62F4EECBA00A18B2C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1B2119F72F4EECBA00A18B2C /* content.css */,
+				1B2119F82F4EECBA00A18B2C /* background.js */,
+				1B2119F92F4EECBA00A18B2C /* options.js */,
+				1B2119FA2F4EECBA00A18B2C /* manifest.json */,
+				1B2119FB2F4EECBA00A18B2C /* options.html */,
+				1B2119FC2F4EECBA00A18B2C /* content.js */,
+				1B2119FD2F4EECBA00A18B2C /* options.css */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1B2119A92F4EECB900A18B2C /* Translate & Save to Notion (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B2119EC2F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion (iOS)" */;
+			buildPhases = (
+				1B2119A62F4EECB900A18B2C /* Sources */,
+				1B2119A72F4EECB900A18B2C /* Frameworks */,
+				1B2119A82F4EECB900A18B2C /* Resources */,
+				1B2119EB2F4EECB900A18B2C /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1B2119CB2F4EECB900A18B2C /* PBXTargetDependency */,
+			);
+			name = "Translate & Save to Notion (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Translate & Save to Notion (iOS)";
+			productReference = 1B2119AA2F4EECB900A18B2C /* Translate & Save to Notion.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1B2119BB2F4EECB900A18B2C /* Translate & Save to Notion (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B2119F32F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion (macOS)" */;
+			buildPhases = (
+				1B2119B82F4EECB900A18B2C /* Sources */,
+				1B2119B92F4EECB900A18B2C /* Frameworks */,
+				1B2119BA2F4EECB900A18B2C /* Resources */,
+				1B2119F22F4EECB900A18B2C /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1B2119D52F4EECB900A18B2C /* PBXTargetDependency */,
+			);
+			name = "Translate & Save to Notion (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Translate & Save to Notion (macOS)";
+			productReference = 1B2119BC2F4EECB900A18B2C /* Translate & Save to Notion.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1B2119C72F4EECB900A18B2C /* Translate & Save to Notion Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B2119E82F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion Extension (iOS)" */;
+			buildPhases = (
+				1B2119C42F4EECB900A18B2C /* Sources */,
+				1B2119C52F4EECB900A18B2C /* Frameworks */,
+				1B2119C62F4EECB900A18B2C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Translate & Save to Notion Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Translate & Save to Notion Extension (iOS)";
+			productReference = 1B2119C82F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		1B2119D12F4EECB900A18B2C /* Translate & Save to Notion Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B2119EF2F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion Extension (macOS)" */;
+			buildPhases = (
+				1B2119CE2F4EECB900A18B2C /* Sources */,
+				1B2119CF2F4EECB900A18B2C /* Frameworks */,
+				1B2119D02F4EECB900A18B2C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Translate & Save to Notion Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Translate & Save to Notion Extension (macOS)";
+			productReference = 1B2119D22F4EECB900A18B2C /* Translate & Save to Notion Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1B2119972F4EECB800A18B2C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					1B2119A92F4EECB900A18B2C = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					1B2119BB2F4EECB900A18B2C = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					1B2119C72F4EECB900A18B2C = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					1B2119D12F4EECB900A18B2C = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = 1B21199A2F4EECB800A18B2C /* Build configuration list for PBXProject "Translate & Save to Notion" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1B2119962F4EECB800A18B2C;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 1B2119AB2F4EECB900A18B2C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1B2119A92F4EECB900A18B2C /* Translate & Save to Notion (iOS) */,
+				1B2119BB2F4EECB900A18B2C /* Translate & Save to Notion (macOS) */,
+				1B2119D12F4EECB900A18B2C /* Translate & Save to Notion Extension (macOS) */,
+				1B2119C72F4EECB900A18B2C /* Translate & Save to Notion Extension (iOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1B2119A82F4EECB900A18B2C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B2119DA2F4EECB900A18B2C /* Icon.png in Resources */,
+				1B2119B32F4EECB900A18B2C /* LaunchScreen.storyboard in Resources */,
+				1B2119D82F4EECB900A18B2C /* Main.html in Resources */,
+				1B2119DE2F4EECB900A18B2C /* Script.js in Resources */,
+				1B2119E22F4EECB900A18B2C /* Assets.xcassets in Resources */,
+				1B2119B62F4EECB900A18B2C /* Main.storyboard in Resources */,
+				1B2119DC2F4EECB900A18B2C /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119BA2F4EECB900A18B2C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B2119DB2F4EECB900A18B2C /* Icon.png in Resources */,
+				1B2119DD2F4EECB900A18B2C /* Style.css in Resources */,
+				1B2119C22F4EECB900A18B2C /* Main.storyboard in Resources */,
+				1B2119DF2F4EECB900A18B2C /* Script.js in Resources */,
+				1B2119E32F4EECB900A18B2C /* Assets.xcassets in Resources */,
+				1B2119D92F4EECB900A18B2C /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119C62F4EECB900A18B2C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B211A0A2F4EECBA00A18B2C /* content.js in Resources */,
+				1B211A082F4EECBA00A18B2C /* manifest.json in Resources */,
+				1B211A062F4EECBA00A18B2C /* background.js in Resources */,
+				1B211A092F4EECBA00A18B2C /* options.html in Resources */,
+				1B211A0B2F4EECBA00A18B2C /* options.css in Resources */,
+				1B211A072F4EECBA00A18B2C /* options.js in Resources */,
+				1B211A052F4EECBA00A18B2C /* content.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119D02F4EECB900A18B2C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B211A032F4EECBA00A18B2C /* content.js in Resources */,
+				1B211A012F4EECBA00A18B2C /* manifest.json in Resources */,
+				1B2119FF2F4EECBA00A18B2C /* background.js in Resources */,
+				1B211A022F4EECBA00A18B2C /* options.html in Resources */,
+				1B211A042F4EECBA00A18B2C /* options.css in Resources */,
+				1B211A002F4EECBA00A18B2C /* options.js in Resources */,
+				1B2119FE2F4EECBA00A18B2C /* content.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1B2119A62F4EECB900A18B2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B2119E02F4EECB900A18B2C /* ViewController.swift in Sources */,
+				1B2119AE2F4EECB900A18B2C /* AppDelegate.swift in Sources */,
+				1B2119B02F4EECB900A18B2C /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119B82F4EECB900A18B2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B2119E12F4EECB900A18B2C /* ViewController.swift in Sources */,
+				1B2119BF2F4EECB900A18B2C /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119C42F4EECB900A18B2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B2119E42F4EECB900A18B2C /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B2119CE2F4EECB900A18B2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B2119E52F4EECB900A18B2C /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1B2119CB2F4EECB900A18B2C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1B2119C72F4EECB900A18B2C /* Translate & Save to Notion Extension (iOS) */;
+			targetProxy = 1B2119CA2F4EECB900A18B2C /* PBXContainerItemProxy */;
+		};
+		1B2119D52F4EECB900A18B2C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1B2119D12F4EECB900A18B2C /* Translate & Save to Notion Extension (macOS) */;
+			targetProxy = 1B2119D42F4EECB900A18B2C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		1B21199D2F4EECB800A18B2C /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1B21199E2F4EECB800A18B2C /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		1B2119B12F4EECB900A18B2C /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1B2119B22F4EECB900A18B2C /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		1B2119B42F4EECB900A18B2C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1B2119B52F4EECB900A18B2C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		1B2119C02F4EECB900A18B2C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1B2119C12F4EECB900A18B2C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		1B2119E62F4EECB900A18B2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		1B2119E72F4EECB900A18B2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		1B2119E92F4EECB900A18B2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion.Extension";
+				PRODUCT_NAME = "Translate & Save to Notion Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1B2119EA2F4EECB900A18B2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion.Extension";
+				PRODUCT_NAME = "Translate & Save to Notion Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1B2119ED2F4EECB900A18B2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion";
+				PRODUCT_NAME = "Translate & Save to Notion";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1B2119EE2F4EECB900A18B2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion";
+				PRODUCT_NAME = "Translate & Save to Notion";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1B2119F02F4EECB900A18B2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion.Extension";
+				PRODUCT_NAME = "Translate & Save to Notion Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1B2119F12F4EECB900A18B2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion.Extension";
+				PRODUCT_NAME = "Translate & Save to Notion Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1B2119F42F4EECB900A18B2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion";
+				PRODUCT_NAME = "Translate & Save to Notion";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1B2119F52F4EECB900A18B2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 357X8ZW3VJ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Translate & Save to Notion";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.Translate---Save-to-Notion";
+				PRODUCT_NAME = "Translate & Save to Notion";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1B21199A2F4EECB800A18B2C /* Build configuration list for PBXProject "Translate & Save to Notion" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B2119E62F4EECB900A18B2C /* Debug */,
+				1B2119E72F4EECB900A18B2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1B2119E82F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B2119E92F4EECB900A18B2C /* Debug */,
+				1B2119EA2F4EECB900A18B2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1B2119EC2F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B2119ED2F4EECB900A18B2C /* Debug */,
+				1B2119EE2F4EECB900A18B2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1B2119EF2F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B2119F02F4EECB900A18B2C /* Debug */,
+				1B2119F12F4EECB900A18B2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1B2119F32F4EECB900A18B2C /* Build configuration list for PBXNativeTarget "Translate & Save to Notion (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B2119F42F4EECB900A18B2C /* Debug */,
+				1B2119F52F4EECB900A18B2C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1B2119972F4EECB800A18B2C /* Project object */;
+}

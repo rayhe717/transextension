@@ -1,0 +1,11 @@
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+DerivedData/
+build/
+
+# macOS
+.DS_Store
+
+# Cursor/IDE
+.cursor/

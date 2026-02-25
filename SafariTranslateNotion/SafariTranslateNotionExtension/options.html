@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Translate & Save to Notion — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-page">
+    <h1>Translate & Save to Notion</h1>
+    <p class="subtitle">Configure your API keys and Notion database. Values are stored locally and never sent except to the APIs below.</p>
+
+    <form id="options-form">
+      <section>
+        <h2>DeepSeek API</h2>
+        <label for="deepseekApiKey">API Key</label>
+        <input type="password" id="deepseekApiKey" name="deepseekApiKey" placeholder="sk-…" autocomplete="off">
+        <p class="hint">Get your key from <a href="https://platform.deepseek.com" target="_blank" rel="noopener">DeepSeek Platform</a>.</p>
+      </section>
+
+      <section>
+        <h2>Notion</h2>
+        <label for="notionToken">Notion API secret</label>
+        <input type="password" id="notionToken" name="notionToken" placeholder="ntn_…" autocomplete="off">
+        <p class="hint">Go to <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener">Notion Integrations</a> → create an internal integration → copy the API secret (starts with <code>ntn_</code>) from the Configuration tab. Then open your database page in Notion, click <strong>⋯</strong> → <strong>Add connections</strong> → select your integration.</p>
+
+        <label for="notionDatabaseId">Database ID</label>
+        <input type="text" id="notionDatabaseId" name="notionDatabaseId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        <p class="hint">Open the database as a full page in Notion. The ID is the 32-character hex string in the URL: <code>notion.so/{ID}?v=…</code></p>
+      </section>
+
+      <section>
+        <h2>Translation</h2>
+        <label for="targetLanguage">Target language</label>
+        <input type="text" id="targetLanguage" name="targetLanguage" placeholder="e.g. Simplified Chinese" value="Simplified Chinese">
+        <p class="hint">Language to translate selected text into (default: Simplified Chinese).</p>
+
+        <label for="maxSelectionLength">Max selection length (characters)</label>
+        <input type="number" id="maxSelectionLength" name="maxSelectionLength" min="20" max="500" value="120">
+        <p class="hint">Ignore selections longer than this (default: 120).</p>
+      </section>
+
+      <div class="actions">
+        <button type="submit" id="save-btn">Save settings</button>
+        <span id="status" class="status"></span>
+      </div>
+    </form>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
