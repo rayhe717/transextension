@@ -277,10 +277,12 @@
       const synonyms = Array.isArray(response.synonyms) ? response.synonyms : [];
       const isPhrase = (thisOriginal || "").trim().split(/\s+/).length > 1;
       const wordClass = isPhrase ? "phrase" : (response.word_class || "");
+      const baseForm = response.base_form || "";
       if (currentPayload && currentPayload.original === thisOriginal) {
         currentPayload.translation = translation;
         currentPayload.synonyms = synonyms;
         currentPayload.word_class = wordClass;
+        currentPayload.base_form = baseForm;
       }
       renderTooltip({
         original: thisOriginal,

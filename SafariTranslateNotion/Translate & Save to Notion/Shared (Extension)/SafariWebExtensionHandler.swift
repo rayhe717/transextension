@@ -39,7 +39,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 20
+        request.timeoutInterval = 30
 
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
