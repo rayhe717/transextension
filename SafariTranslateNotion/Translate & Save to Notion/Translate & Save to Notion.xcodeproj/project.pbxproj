@@ -45,6 +45,12 @@
 		1B211A0B2F4EECBA00A18B2C /* options.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FD2F4EECBA00A18B2C /* options.css */; };
 		AA0000022F4EECBA00A18B2C /* images in Resources */ = {isa = PBXBuildFile; fileRef = AA0000012F4EECBA00A18B2C /* images */; };
 		AA0000032F4EECBA00A18B2C /* images in Resources */ = {isa = PBXBuildFile; fileRef = AA0000012F4EECBA00A18B2C /* images */; };
+		AA0000042F4EECBA00A18B2C /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = AA0000072F4EECBA00A18B2C /* popup.html */; };
+		AA0000052F4EECBA00A18B2C /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = AA0000082F4EECBA00A18B2C /* popup.css */; };
+		AA0000062F4EECBA00A18B2C /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000092F4EECBA00A18B2C /* popup.js */; };
+		AA00000A2F4EECBA00A18B2C /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = AA0000072F4EECBA00A18B2C /* popup.html */; };
+		AA00000B2F4EECBA00A18B2C /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = AA0000082F4EECBA00A18B2C /* popup.css */; };
+		AA00000C2F4EECBA00A18B2C /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000092F4EECBA00A18B2C /* popup.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,6 +125,9 @@
 		1B2119FC2F4EECBA00A18B2C /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../SafariTranslateNotionExtension/content.js; sourceTree = "<group>"; };
 		1B2119FD2F4EECBA00A18B2C /* options.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = options.css; path = ../../SafariTranslateNotionExtension/options.css; sourceTree = "<group>"; };
 		AA0000012F4EECBA00A18B2C /* images */ = {isa = PBXFileReference; lastKnownFileType = folder; name = images; path = ../../SafariTranslateNotionExtension/images; sourceTree = "<group>"; };
+		AA0000072F4EECBA00A18B2C /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = ../../SafariTranslateNotionExtension/popup.html; sourceTree = "<group>"; };
+		AA0000082F4EECBA00A18B2C /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = ../../SafariTranslateNotionExtension/popup.css; sourceTree = "<group>"; };
+		AA0000092F4EECBA00A18B2C /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../SafariTranslateNotionExtension/popup.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -255,6 +264,9 @@
 				1B2119FB2F4EECBA00A18B2C /* options.html */,
 				1B2119FC2F4EECBA00A18B2C /* content.js */,
 				1B2119FD2F4EECBA00A18B2C /* options.css */,
+				AA0000072F4EECBA00A18B2C /* popup.html */,
+				AA0000082F4EECBA00A18B2C /* popup.css */,
+				AA0000092F4EECBA00A18B2C /* popup.js */,
 				AA0000012F4EECBA00A18B2C /* images */,
 			);
 			name = Resources;
@@ -429,6 +441,9 @@
 				1B211A0B2F4EECBA00A18B2C /* options.css in Resources */,
 				1B211A072F4EECBA00A18B2C /* options.js in Resources */,
 				1B211A052F4EECBA00A18B2C /* content.css in Resources */,
+				AA0000042F4EECBA00A18B2C /* popup.html in Resources */,
+				AA0000052F4EECBA00A18B2C /* popup.css in Resources */,
+				AA0000062F4EECBA00A18B2C /* popup.js in Resources */,
 				AA0000022F4EECBA00A18B2C /* images in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -444,6 +459,9 @@
 				1B211A042F4EECBA00A18B2C /* options.css in Resources */,
 				1B211A002F4EECBA00A18B2C /* options.js in Resources */,
 				1B2119FE2F4EECBA00A18B2C /* content.css in Resources */,
+				AA00000A2F4EECBA00A18B2C /* popup.html in Resources */,
+				AA00000B2F4EECBA00A18B2C /* popup.css in Resources */,
+				AA00000C2F4EECBA00A18B2C /* popup.js in Resources */,
 				AA0000032F4EECBA00A18B2C /* images in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
