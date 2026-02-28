@@ -354,6 +354,10 @@ function saveToNotionApi(payload, notionToken, databaseId) {
     props["Base Form"] = {
       rich_text: [{ type: "text", text: { content: (payload.base_form || payload.original || "").slice(0, 2000) } }],
     };
+    var senseText = (payload.sense && typeof payload.sense === "string") ? payload.sense.trim() : "";
+    if (senseText) {
+      props["Sense"] = { rich_text: [{ type: "text", text: { content: senseText.slice(0, 2000) } }] };
+    }
 
     var tax = payload.taxonomy;
     if (tax) {
@@ -486,6 +490,7 @@ browser.runtime.onMessage.addListener(function (message, sender) {
               var sensePayload = {
                 original: payload.original,
                 translation: m.translation || "",
+                sense: (m.sense && typeof m.sense === "string") ? m.sense.trim() : "",
                 synonyms: m.synonyms || [],
                 word_class: m.word_class || "",
                 base_form: payload.base_form || payload.original || "",
