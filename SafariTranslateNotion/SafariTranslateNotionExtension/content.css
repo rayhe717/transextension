@@ -72,6 +72,28 @@
   min-height: 1.3em;
 }
 
+.stn-tooltip-meanings {
+  margin-top: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.stn-tooltip-meaning-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.stn-tooltip-meaning-row input[type=checkbox] {
+  margin: 0;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .stn-tooltip-actions {
   display: flex;
   align-items: center;

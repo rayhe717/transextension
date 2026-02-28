@@ -4,6 +4,7 @@
   const saveBtn = document.getElementById("saveBtn");
   const settingsBtn = document.getElementById("settingsBtn");
   const translationEl = document.getElementById("translationText");
+  const meaningsListEl = document.getElementById("meaningsList");
   const statusEl = document.getElementById("statusText");
 
   let currentPayload = null;
@@ -45,23 +46,49 @@
           return;
         }
         const translation = (response.translation || "").trim();
-        if (!translation) {
+        const meanings = (response.meanings && response.meanings.length) ? response.meanings : null;
+        if (!translation && (!meanings || meanings.length === 0)) {
           setStatus("Translation is empty. Try again.", "error");
           return;
         }
-        translationEl.textContent = translation;
         currentPayload = {
           original: text,
           translation: translation,
-          synonyms: Array.isArray(response.synonyms) ? response.synonyms : [],
-          word_class: response.word_class || "",
           base_form: response.base_form || "",
           context: null,
           sourceUrl: "",
           pageTitle: "",
         };
+        if (meanings) {
+          currentPayload.meanings = meanings;
+          translationEl.textContent = "";
+          translationEl.style.display = "none";
+          meaningsListEl.innerHTML = "";
+          meaningsListEl.style.display = "block";
+          meanings.forEach(function (m, i) {
+            var trans = (m.translation || "").trim();
+            var sense = (m.sense || "").trim();
+            var labelText = (i + 1) + ". " + trans + (sense ? " (" + sense + ")" : "");
+            var label = document.createElement("label");
+            label.className = "popup-meaning-row";
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = true;
+            cb.setAttribute("data-meaning-index", String(i));
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(" " + labelText));
+            meaningsListEl.appendChild(label);
+          });
+        } else {
+          currentPayload.synonyms = Array.isArray(response.synonyms) ? response.synonyms : [];
+          currentPayload.word_class = response.word_class || "";
+          translationEl.style.display = "";
+          translationEl.textContent = translation;
+          meaningsListEl.innerHTML = "";
+          meaningsListEl.style.display = "none";
+        }
         saveBtn.disabled = false;
-        setStatus("Ready to save.");
+        setStatus(meanings && meanings.length > 0 ? "Choose sense(s) to save, then click Save." : "Ready to save.");
       })
       .catch(function (err) {
         setBusy(false);
@@ -69,16 +96,41 @@
       });
   }
 
+  function getSelectedMeaningsPayload() {
+    if (!currentPayload) return null;
+    if (!currentPayload.meanings || currentPayload.meanings.length === 0) {
+      return currentPayload;
+    }
+    var checked = meaningsListEl.querySelectorAll("input[type=checkbox]:checked");
+    if (!checked || checked.length === 0) {
+      setStatus("Select at least one sense to save.", "error");
+      return null;
+    }
+    var selected = [];
+    for (var i = 0; i < checked.length; i++) {
+      var idx = parseInt(checked[i].getAttribute("data-meaning-index"), 10);
+      if (!isNaN(idx) && currentPayload.meanings[idx]) selected.push(currentPayload.meanings[idx]);
+    }
+    if (selected.length === 0) return null;
+    return {
+      original: currentPayload.original,
+      base_form: currentPayload.base_form,
+      context: currentPayload.context,
+      meanings: selected,
+    };
+  }
+
   function save() {
-    if (!currentPayload || !currentPayload.translation) {
-      setStatus("Translate first before saving.", "error");
+    var payload = currentPayload && currentPayload.meanings ? getSelectedMeaningsPayload() : (currentPayload || null);
+    if (!payload) {
+      if (!currentPayload) setStatus("Translate first before saving.", "error");
       return;
     }
     translateBtn.disabled = true;
     saveBtn.disabled = true;
     setStatus("Saving...");
 
-    browser.runtime.sendMessage({ type: "saveToNotion", payload: currentPayload })
+    browser.runtime.sendMessage({ type: "saveToNotion", payload: payload })
       .then(function (response) {
         translateBtn.disabled = false;
         saveBtn.disabled = false;
@@ -86,7 +138,8 @@
           setStatus(response.error, "error");
           return;
         }
-        setStatus("Saved to Notion.", "success");
+        var count = (response && response.count) ? response.count : 1;
+        setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Notion.", "success");
       })
       .catch(function (err) {
         translateBtn.disabled = false;

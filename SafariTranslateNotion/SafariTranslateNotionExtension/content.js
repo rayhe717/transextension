@@ -76,15 +76,34 @@
     lastTooltipShowTime = 0;
   }
 
+  function buildSavePayload() {
+    if (!currentPayload) return null;
+    if (currentPayload.meanings && currentPayload.meanings.length > 0) {
+      var root = document.getElementById(TOOLTIP_ID);
+      if (!root) return null;
+      var checked = root.querySelectorAll(".stn-tooltip-meanings input[type=checkbox]:checked");
+      if (!checked || checked.length === 0) return null;
+      var selected = [];
+      for (var i = 0; i < checked.length; i++) {
+        var idx = parseInt(checked[i].getAttribute("data-meaning-index"), 10);
+        if (!isNaN(idx) && currentPayload.meanings[idx]) selected.push(currentPayload.meanings[idx]);
+      }
+      if (selected.length === 0) return null;
+      return { original: currentPayload.original, base_form: currentPayload.base_form, context: currentPayload.context, meanings: selected };
+    }
+    if (currentPayload.translation) return currentPayload;
+    return null;
+  }
+
   function onKeyDown(e) {
     if (e.key === "Escape") {
       removeTooltip();
       document.removeEventListener("keydown", onKeyDown);
       return;
     }
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && tooltipEl && currentPayload && currentPayload.translation) {
-      e.preventDefault();
-      saveToNotion(currentPayload);
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && tooltipEl) {
+      var payload = buildSavePayload();
+      if (payload) { e.preventDefault(); saveToNotion(payload); }
     }
   }
 
@@ -106,24 +125,66 @@
     tooltipEl.style.left = left + window.scrollX + "px";
   }
 
+  function updateSaveButtonState() {
+    var root = document.getElementById(TOOLTIP_ID);
+    if (!root) return;
+    var saveBtn = root.querySelector(".stn-tooltip-btn-save");
+    if (!saveBtn) return;
+    var meaningsDiv = root.querySelector(".stn-tooltip-meanings");
+    if (meaningsDiv && meaningsDiv.children.length > 0) {
+      var anyChecked = root.querySelector(".stn-tooltip-meanings input[type=checkbox]:checked");
+      saveBtn.disabled = !anyChecked;
+    }
+  }
+
   function renderTooltip(state) {
-    const { original, translation, loading, error, saving, saveSuccess, saveError } = state;
+    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings } = state;
     const root = document.getElementById(TOOLTIP_ID);
     if (!root) return;
 
     const headerOriginal = root.querySelector(".stn-tooltip-original");
     const bodyTranslation = root.querySelector(".stn-tooltip-translation");
+    const meaningsDiv = root.querySelector(".stn-tooltip-meanings");
     const statusEl = root.querySelector(".stn-tooltip-status");
     const saveBtn = root.querySelector(".stn-tooltip-btn-save");
 
     if (headerOriginal) headerOriginal.textContent = original || "";
     if (bodyTranslation) {
-      if (loading) {
-        bodyTranslation.textContent = "Translating…";
-        bodyTranslation.classList.add("stn-tooltip-loading");
+      if (meanings && meanings.length > 0) {
+        bodyTranslation.style.display = "none";
+        bodyTranslation.textContent = "";
       } else {
-        bodyTranslation.classList.remove("stn-tooltip-loading");
-        bodyTranslation.textContent = translation || (error ? "Translation unavailable." : "—");
+        bodyTranslation.style.display = "";
+        if (loading) {
+          bodyTranslation.textContent = "Translating…";
+          bodyTranslation.classList.add("stn-tooltip-loading");
+        } else {
+          bodyTranslation.classList.remove("stn-tooltip-loading");
+          bodyTranslation.textContent = translation || (error ? "Translation unavailable." : "—");
+        }
+      }
+    }
+    if (meaningsDiv) {
+      meaningsDiv.innerHTML = "";
+      meaningsDiv.style.display = "none";
+      if (meanings && meanings.length > 0) {
+        meaningsDiv.style.display = "block";
+        for (var i = 0; i < meanings.length; i++) {
+          var m = meanings[i];
+          var trans = (m.translation || "").trim();
+          var sense = (m.sense || "").trim();
+          var labelText = (i + 1) + ". " + trans + (sense ? " (" + sense + ")" : "");
+          var label = document.createElement("label");
+          label.className = "stn-tooltip-meaning-row";
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = true;
+          cb.setAttribute("data-meaning-index", String(i));
+          cb.addEventListener("change", updateSaveButtonState);
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(" " + labelText));
+          meaningsDiv.appendChild(label);
+        }
       }
     }
     if (statusEl) {
@@ -131,8 +192,15 @@
       statusEl.className = "stn-tooltip-status" + (saveError || error ? " error" : "") + (saveSuccess ? " success" : "");
     }
     if (saveBtn) {
-      saveBtn.disabled = !!loading || !!saving || !translation;
       saveBtn.textContent = saving ? "Saving…" : "Save";
+      if (loading || saving) {
+        saveBtn.disabled = true;
+      } else if (meanings && meanings.length > 0) {
+        saveBtn.disabled = false;
+        updateSaveButtonState();
+      } else {
+        saveBtn.disabled = !translation;
+      }
     }
     root.offsetHeight;
   }
@@ -179,6 +247,7 @@
       "</div>" +
       '<div class="stn-tooltip-body">' +
       '<div class="stn-tooltip-translation stn-tooltip-loading">Translating…</div>' +
+      '<div class="stn-tooltip-meanings"></div>' +
       '<div class="stn-tooltip-actions">' +
       '<button type="button" class="stn-tooltip-btn-save" disabled>Save</button>' +
       '<span class="stn-tooltip-status"></span>' +
@@ -198,8 +267,9 @@
     });
 
     saveBtn.addEventListener("click", function () {
-      if (!currentPayload || !currentPayload.translation) return;
-      saveToNotion(currentPayload);
+      var payload = buildSavePayload();
+      if (!payload) return;
+      saveToNotion(payload);
     });
 
     document.body.appendChild(backdropEl);
@@ -278,11 +348,17 @@
       const isPhrase = (thisOriginal || "").trim().split(/\s+/).length > 1;
       const wordClass = isPhrase ? "phrase" : (response.word_class || "");
       const baseForm = response.base_form || "";
+      const meanings = (response.meanings && response.meanings.length) ? response.meanings : null;
       if (currentPayload && currentPayload.original === thisOriginal) {
         currentPayload.translation = translation;
-        currentPayload.synonyms = synonyms;
-        currentPayload.word_class = wordClass;
         currentPayload.base_form = baseForm;
+        if (meanings) {
+          currentPayload.meanings = meanings;
+        } else {
+          currentPayload.synonyms = synonyms;
+          currentPayload.word_class = wordClass;
+          currentPayload.meanings = null;
+        }
       }
       renderTooltip({
         original: thisOriginal,
@@ -292,6 +368,7 @@
         saving: false,
         saveSuccess: false,
         saveError: null,
+        meanings: meanings || undefined,
       });
       flushTooltipPaint();
     }
@@ -316,40 +393,34 @@
   }
 
   function saveToNotion(payload) {
-    renderTooltip({
-      original: payload.original,
-      translation: payload.translation,
-      loading: false,
-      error: null,
-      saving: true,
-      saveSuccess: false,
-      saveError: null,
-    });
+    var disp = { original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation), loading: false, error: null, saving: true, saveSuccess: false, saveError: null };
+    if (currentPayload && currentPayload.meanings) disp.meanings = currentPayload.meanings;
+    renderTooltip(disp);
 
     browser.runtime.sendMessage({ type: "saveToNotion", payload: payload })
       .then(function (response) {
         if (response && response.error) {
           renderTooltip({
-            original: payload.original, translation: payload.translation,
-            loading: false, error: null, saving: false,
-            saveSuccess: false, saveError: response.error,
+            original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation),
+            loading: false, error: null, saving: false, saveSuccess: false, saveError: response.error,
+            meanings: currentPayload && currentPayload.meanings || undefined,
           });
           flushTooltipPaint();
           return;
         }
         renderTooltip({
-          original: payload.original, translation: payload.translation,
-          loading: false, error: null, saving: false,
-          saveSuccess: true, saveError: null,
+          original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation),
+          loading: false, error: null, saving: false, saveSuccess: true, saveError: null,
+          meanings: currentPayload && currentPayload.meanings || undefined,
         });
         flushTooltipPaint();
         setTimeout(removeTooltip, 1500);
       })
       .catch(function (err) {
         renderTooltip({
-          original: payload.original, translation: payload.translation,
-          loading: false, error: null, saving: false,
-          saveSuccess: false, saveError: (err && err.message) || "Failed to save",
+          original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation),
+          loading: false, error: null, saving: false, saveSuccess: false, saveError: (err && err.message) || "Failed to save",
+          meanings: currentPayload && currentPayload.meanings || undefined,
         });
         flushTooltipPaint();
       });

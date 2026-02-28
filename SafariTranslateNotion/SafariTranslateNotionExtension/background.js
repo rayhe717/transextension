@@ -16,14 +16,40 @@ function getStoredOptions() {
   });
 }
 
+function formatMeaningsAsTranslation(meanings) {
+  if (!Array.isArray(meanings) || meanings.length === 0) return "";
+  var parts = [];
+  for (var i = 0; i < meanings.length; i++) {
+    var m = meanings[i];
+    var trans = (m && typeof m.translation === "string") ? m.translation.trim() : "";
+    if (!trans) continue;
+    var sense = (m && typeof m.sense === "string") ? m.sense.trim() : "";
+    parts.push((parts.length + 1) + ". " + trans + (sense ? " (" + sense + ")" : ""));
+  }
+  return parts.join("\n");
+}
+
 function parseTranslationResponse(text) {
-  const out = { translation: "", synonyms: [], word_class: "", base_form: "" };
+  const out = { translation: "", synonyms: [], word_class: "", base_form: "", meanings: null };
   if (!text || typeof text !== "string") return out;
   const trimmed = text.trim();
   function extract(parsed) {
-    if (parsed && typeof parsed.translation === "string") out.translation = parsed.translation;
-    if (Array.isArray(parsed.synonyms)) out.synonyms = parsed.synonyms.filter(function (s) { return typeof s === "string"; });
-    if (parsed && typeof parsed.word_class === "string") out.word_class = parsed.word_class.trim();
+    if (Array.isArray(parsed.meanings) && parsed.meanings.length > 0) {
+      out.translation = formatMeaningsAsTranslation(parsed.meanings);
+      out.meanings = parsed.meanings.map(function (m) {
+        return {
+          sense: (m && typeof m.sense === "string") ? m.sense.trim() : "",
+          translation: (m && typeof m.translation === "string") ? m.translation.trim() : "",
+          synonyms: Array.isArray(m.synonyms) ? m.synonyms.filter(function (s) { return typeof s === "string"; }) : [],
+          word_class: (m && typeof m.word_class === "string") ? m.word_class.trim() : "",
+        };
+      }).filter(function (m) { return m.translation; });
+      if (out.meanings.length === 0) out.meanings = null;
+    } else if (parsed && typeof parsed.translation === "string") {
+      out.translation = parsed.translation;
+      if (Array.isArray(parsed.synonyms)) out.synonyms = parsed.synonyms.filter(function (s) { return typeof s === "string"; });
+      if (parsed && typeof parsed.word_class === "string") out.word_class = parsed.word_class.trim();
+    }
     if (parsed && typeof parsed.base_form === "string") out.base_form = parsed.base_form.trim();
   }
   try { extract(JSON.parse(trimmed)); return out; } catch (_) {}
@@ -36,14 +62,14 @@ function parseTranslationResponse(text) {
 function translateWithDeepSeek(text, apiKey, targetLanguage) {
   const lang = targetLanguage || DEFAULT_TARGET_LANG;
   const systemPrompt =
-    "Translate to " + lang + ". Reply with JSON only: {\"translation\": \"<translation>\", \"synonyms\": [\"...\"], \"word_class\": \"<Noun|Verb|Adjective|Adverb|Pronoun|Preposition|Conjunction|Interjection|phrase>\", \"base_form\": \"<lemma>\"}. IMPORTANT: synonyms must be English words/phrases with similar meaning to the original input — never translate synonyms. word_class is part of speech or \"phrase\" for multi-word input. base_form is the dictionary/root form of the word (e.g. skiving→skive, croons→croon, happier→happy). If the input is already a base form or a phrase, set base_form to the input itself.";
+    "Translate to " + lang + ". Reply with JSON only. For words with multiple distinct meanings (e.g. twitchy = twitching a lot, or nervous/anxious), use a \"meanings\" array: {\"meanings\": [{\"sense\": \"<short English gloss>\", \"translation\": \"<target translation>\", \"synonyms\": [\"...\"], \"word_class\": \"<Noun|Verb|Adjective|Adverb|Pronoun|Preposition|Conjunction|Interjection|phrase>\"}, ...], \"base_form\": \"<lemma>\"}. For a single meaning you may use either \"meanings\": [{\"sense\": \"\", \"translation\": \"...\", \"synonyms\": [...], \"word_class\": \"...\"}] or the shorthand {\"translation\": \"...\", \"synonyms\": [...], \"word_class\": \"...\", \"base_form\": \"...\"}. IMPORTANT: synonyms must be English words/phrases with similar meaning — never translate synonyms. sense is a brief English gloss (e.g. twitching a lot, anxious). base_form is the dictionary/root form (e.g. skiving→skive). If input is already base form or a phrase, set base_form to the input itself.";
   const body = JSON.stringify({
     model: "deepseek-chat",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: text },
     ],
-    max_tokens: 256,
+    max_tokens: 512,
     temperature: 0.2,
     response_format: { type: "json_object" },
   });
@@ -283,10 +309,10 @@ browser.runtime.onMessage.addListener(function (message, sender) {
         return translateWithDeepSeek(message.text, opts.deepseekApiKey.trim(), opts.targetLanguage || DEFAULT_TARGET_LANG);
       })
       .then(function (result) {
-        if (!result || typeof result.translation !== "string" || !result.translation.trim()) {
-          throw new Error("DeepSeek returned an empty translation. Try again.");
-        }
-        return result;
+        if (!result) throw new Error("DeepSeek returned nothing. Try again.");
+        if (result.meanings && result.meanings.length > 0) return result;
+        if (typeof result.translation === "string" && result.translation.trim()) return result;
+        throw new Error("DeepSeek returned an empty translation. Try again.");
       })
       .catch(function (err) {
         return { error: err && err.message ? err.message : "Translation failed" };
@@ -318,13 +344,37 @@ browser.runtime.onMessage.addListener(function (message, sender) {
           throw new Error("Set your Notion Database ID in extension options.");
         }
         var apiKey = (opts.deepseekApiKey && opts.deepseekApiKey.trim()) ? opts.deepseekApiKey.trim() : "";
+        var token = opts.notionToken.trim();
+        var dbId = opts.notionDatabaseId.trim();
+
+        if (payload.meanings && Array.isArray(payload.meanings) && payload.meanings.length > 0) {
+          return callTaxonomy(payload.original, payload.context, apiKey).then(function (taxonomy) {
+            var promises = payload.meanings.map(function (m) {
+              var sensePayload = {
+                original: payload.original,
+                translation: m.translation || "",
+                synonyms: m.synonyms || [],
+                word_class: m.word_class || "",
+                base_form: payload.base_form || payload.original || "",
+                taxonomy: taxonomy,
+              };
+              return saveToNotionApi(sensePayload, token, dbId);
+            });
+            return Promise.all(promises).then(function () {
+              return { ok: true, count: payload.meanings.length };
+            });
+          });
+        }
+
         return callTaxonomy(payload.original, payload.context, apiKey).then(function (taxonomy) {
           payload.taxonomy = taxonomy;
-          return saveToNotionApi(payload, opts.notionToken.trim(), opts.notionDatabaseId.trim());
+          return saveToNotionApi(payload, token, dbId).then(function () {
+            return { ok: true, count: 1 };
+          });
         });
       })
-      .then(function () {
-        return { ok: true };
+      .then(function (result) {
+        return result || { ok: true };
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : "Save failed";
