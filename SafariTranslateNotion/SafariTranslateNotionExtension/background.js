@@ -4,6 +4,7 @@
 
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 const NOTION_URL = "https://api.notion.com/v1/pages";
+const NOTION_API_BASE = "https://api.notion.com/v1";
 const DEFAULT_TARGET_LANG = "Simplified Chinese";
 
 function getStoredOptions() {
@@ -154,6 +155,20 @@ function parseTaxonomyResponse(text) {
   return out;
 }
 
+function buildSenseContext(senseMeaning, sentenceContext) {
+  var parts = [];
+  if (senseMeaning && typeof senseMeaning.sense === "string" && senseMeaning.sense.trim()) {
+    parts.push("Sense: " + senseMeaning.sense.trim());
+  }
+  if (senseMeaning && typeof senseMeaning.translation === "string" && senseMeaning.translation.trim()) {
+    parts.push("Translation: " + senseMeaning.translation.trim());
+  }
+  if (sentenceContext && typeof sentenceContext === "string" && sentenceContext.trim()) {
+    parts.push("Context sentence: " + sentenceContext.trim().slice(0, 500));
+  }
+  return parts.length ? parts.join(". ") : "none";
+}
+
 function callTaxonomy(word, context, apiKey) {
   if (!word || !apiKey) return Promise.resolve(parseTaxonomyResponse(""));
   const contextSentence = (context && typeof context === "string" && context.trim()) ? context.trim().slice(0, 1000) : "none";
@@ -220,58 +235,22 @@ function normalizeDatabaseId(id) {
   return id.trim().replace(/-/g, "");
 }
 
-function saveToNotionApi(payload, notionToken, databaseId) {
-  const synonymsStr = Array.isArray(payload.synonyms) ? payload.synonyms.join(", ") : "";
-  const wordClassSelect = normalizeWordClass(payload.word_class);
-  const props = {
-    Word: {
-      title: [{ type: "text", text: { content: (payload.original || "").slice(0, 2000) } }],
-    },
-    Translation: {
-      rich_text: [{ type: "text", text: { content: (payload.translation || "").slice(0, 2000) } }],
-    },
-    Synonyms: {
-      rich_text: [{ type: "text", text: { content: synonymsStr.slice(0, 2000) } }],
-    },
-  };
-  props["Word Class"] = { select: { name: wordClassSelect || "phrase" } };
-  props["Base Form"] = {
-    rich_text: [{ type: "text", text: { content: (payload.base_form || payload.original || "").slice(0, 2000) } }],
-  };
-
-  var tax = payload.taxonomy;
-  if (tax) {
-    if (tax.narrative_function) props["Narrative Function"] = { select: { name: tax.narrative_function } };
-    if (Array.isArray(tax.sensory_channel) && tax.sensory_channel.length) {
-      props["Sensory Channel"] = { multi_select: tax.sensory_channel.slice(0, 20).map(function (n) { return { name: n }; }) };
-    }
-    if (Array.isArray(tax.psychological_domain) && tax.psychological_domain.length) {
-      props["Psychological Domain"] = { multi_select: tax.psychological_domain.slice(0, 20).map(function (n) { return { name: n }; }) };
-    }
-    if (Array.isArray(tax.action_type) && tax.action_type.length) {
-      props["Action Type"] = { multi_select: tax.action_type.slice(0, 20).map(function (n) { return { name: n }; }) };
-    }
-    if (Array.isArray(tax.social_function) && tax.social_function.length) {
-      props["Social Function"] = { multi_select: tax.social_function.slice(0, 20).map(function (n) { return { name: n }; }) };
-    }
-    if (Array.isArray(tax.atmosphere_tone) && tax.atmosphere_tone.length) {
-      props["Atmosphere Tone"] = { multi_select: tax.atmosphere_tone.slice(0, 20).map(function (n) { return { name: n }; }) };
-    }
-    if (tax.register) props["Register"] = { select: { name: tax.register } };
-    if (tax.show_tell) props["Show Tell"] = { select: { name: tax.show_tell } };
-  }
-
-  const normalizedDbId = normalizeDatabaseId(databaseId);
-  if (!normalizedDbId) throw new Error("Notion: Database ID is empty. Check Options.");
-
-  const body = JSON.stringify({
-    parent: { type: "database_id", database_id: normalizedDbId },
-    properties: props,
-  });
-
+function checkNotionForExistingWordOrBaseForm(notionToken, databaseId, word, baseForm) {
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId || !notionToken) return Promise.resolve({ found: false });
+  var wordTrim = (word && typeof word === "string") ? word.trim() : "";
+  var baseTrim = (baseForm && typeof baseForm === "string") ? baseForm.trim() : "";
+  if (!wordTrim && !baseTrim) return Promise.resolve({ found: false });
+  var clauses = [];
+  if (wordTrim) clauses.push({ property: "Word", title: { equals: wordTrim } });
+  if (baseTrim && baseTrim !== wordTrim) clauses.push({ property: "Base Form", rich_text: { equals: baseTrim } });
+  if (clauses.length === 0) return Promise.resolve({ found: false });
+  var filter = clauses.length === 1 ? clauses[0] : { or: clauses };
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var body = JSON.stringify({ filter: filter, page_size: 1 });
   return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
     type: "apiRequest",
-    url: NOTION_URL,
+    url: url,
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -280,23 +259,163 @@ function saveToNotionApi(payload, notionToken, databaseId) {
     },
     body: body,
   }).then(function (res) {
-    if (!res) throw new Error("Notion: No response from native handler.");
-    if (res.error) throw new Error(res.error);
-    var status = res.status;
-    var text = res.body || "";
-    if (status < 200 || status >= 300) {
-      var detail = "";
-      try {
-        var j = JSON.parse(text);
-        detail = (j && j.message) || "";
-      } catch (_) {}
-      if (status === 401) throw new Error("Notion (" + status + "): Invalid API secret. Check extension Options." + (detail ? " — " + detail : ""));
-      if (status === 403) throw new Error("Notion (" + status + "): No access. Open your database in Notion → ⋯ → Add connections → select your integration." + (detail ? " — " + detail : ""));
-      if (status === 404) throw new Error("Notion (" + status + "): Database not found. Check Database ID and connect the database to your integration." + (detail ? " — " + detail : ""));
-      throw new Error("Notion (" + status + "): " + (detail || "Request failed"));
+    if (!res || res.error || res.status < 200 || res.status >= 300) return { found: false };
+    try {
+      var data = JSON.parse(res.body || "{}");
+      var results = data.results || [];
+      if (results.length === 0) return { found: false };
+      var page = results[0];
+      var wordVal = page.properties && page.properties.Word && page.properties.Word.title && page.properties.Word.title[0] ? page.properties.Word.title[0].plain_text : "";
+      var baseVal = page.properties && page.properties["Base Form"] && page.properties["Base Form"].rich_text && page.properties["Base Form"].rich_text[0] ? page.properties["Base Form"].rich_text[0].plain_text : "";
+      var matchType = (wordTrim && wordVal === wordTrim) ? "word" : "base_form";
+      var value = matchType === "word" ? wordVal : (baseVal || baseTrim);
+      return { found: true, matchType: matchType, value: value || wordVal || baseVal };
+    } catch (_) { return { found: false }; }
+  }).catch(function () { return { found: false }; });
+}
+
+function queryNotionPagesByWords(notionToken, databaseId, words) {
+  if (!words || words.length === 0) return Promise.resolve({});
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId) return Promise.resolve({});
+  var list = words.filter(function (w) { return typeof w === "string" && w.trim(); }).slice(0, 10);
+  if (list.length === 0) return Promise.resolve({});
+  var filter = list.length === 1
+    ? { property: "Word", title: { equals: list[0] } }
+    : { or: list.map(function (w) { return { property: "Word", title: { equals: w } }; }) };
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var body = JSON.stringify({ filter: filter });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: url,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + notionToken,
+      "Notion-Version": "2022-06-28",
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error || res.status < 200 || res.status >= 300) return {};
+    try {
+      var data = JSON.parse(res.body || "{}");
+      var results = data.results || [];
+      var map = {};
+      for (var i = 0; i < results.length; i++) {
+        var page = results[i];
+        var titleProp = page.properties && page.properties.Word;
+        if (titleProp && titleProp.title && titleProp.title[0]) {
+          var plain = titleProp.title[0].plain_text;
+          if (plain && !map[plain]) map[plain] = page.id;
+        }
+      }
+      return map;
+    } catch (_) { return {}; }
+  }).catch(function () { return {}; });
+}
+
+function buildSynonymsRichText(synonyms, synonymToPageId) {
+  if (!Array.isArray(synonyms) || synonyms.length === 0) {
+    return [{ type: "text", text: { content: "" } }];
+  }
+  var blocks = [];
+  for (var i = 0; i < synonyms.length; i++) {
+    if (i > 0) blocks.push({ type: "text", text: { content: ", " } });
+    var s = (synonyms[i] && typeof synonyms[i] === "string") ? synonyms[i].trim() : "";
+    if (!s) continue;
+    var pageId = synonymToPageId && synonymToPageId[s];
+    if (pageId) {
+      blocks.push({ type: "mention", mention: { type: "page", page: { id: pageId } } });
+    } else {
+      blocks.push({ type: "text", text: { content: s.slice(0, 2000) } });
     }
-    return text ? JSON.parse(text) : {};
-  });
+  }
+  return blocks.length ? blocks : [{ type: "text", text: { content: "" } }];
+}
+
+function saveToNotionApi(payload, notionToken, databaseId) {
+  var synonyms = Array.isArray(payload.synonyms) ? payload.synonyms : [];
+  var wordClassSelect = normalizeWordClass(payload.word_class);
+
+  var createPage = function (synonymToPageId) {
+    var synonymsBlocks = buildSynonymsRichText(synonyms, synonymToPageId);
+    const props = {
+      Word: {
+        title: [{ type: "text", text: { content: (payload.original || "").slice(0, 2000) } }],
+      },
+      Translation: {
+        rich_text: [{ type: "text", text: { content: (payload.translation || "").slice(0, 2000) } }],
+      },
+      Synonyms: {
+        rich_text: synonymsBlocks,
+      },
+    };
+    props["Word Class"] = { select: { name: wordClassSelect || "phrase" } };
+    props["Base Form"] = {
+      rich_text: [{ type: "text", text: { content: (payload.base_form || payload.original || "").slice(0, 2000) } }],
+    };
+
+    var tax = payload.taxonomy;
+    if (tax) {
+      if (tax.narrative_function) props["Narrative Function"] = { select: { name: tax.narrative_function } };
+      if (Array.isArray(tax.sensory_channel) && tax.sensory_channel.length) {
+        props["Sensory Channel"] = { multi_select: tax.sensory_channel.slice(0, 20).map(function (n) { return { name: n }; }) };
+      }
+      if (Array.isArray(tax.psychological_domain) && tax.psychological_domain.length) {
+        props["Psychological Domain"] = { multi_select: tax.psychological_domain.slice(0, 20).map(function (n) { return { name: n }; }) };
+      }
+      if (Array.isArray(tax.action_type) && tax.action_type.length) {
+        props["Action Type"] = { multi_select: tax.action_type.slice(0, 20).map(function (n) { return { name: n }; }) };
+      }
+      if (Array.isArray(tax.social_function) && tax.social_function.length) {
+        props["Social Function"] = { multi_select: tax.social_function.slice(0, 20).map(function (n) { return { name: n }; }) };
+      }
+      if (Array.isArray(tax.atmosphere_tone) && tax.atmosphere_tone.length) {
+        props["Atmosphere Tone"] = { multi_select: tax.atmosphere_tone.slice(0, 20).map(function (n) { return { name: n }; }) };
+      }
+      if (tax.register) props["Register"] = { select: { name: tax.register } };
+      if (tax.show_tell) props["Show Tell"] = { select: { name: tax.show_tell } };
+    }
+
+    const normalizedDbId = normalizeDatabaseId(databaseId);
+    if (!normalizedDbId) throw new Error("Notion: Database ID is empty. Check Options.");
+
+    const body = JSON.stringify({
+      parent: { type: "database_id", database_id: normalizedDbId },
+      properties: props,
+    });
+
+    return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+      type: "apiRequest",
+      url: NOTION_URL,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + notionToken,
+        "Notion-Version": "2022-06-28",
+      },
+      body: body,
+    }).then(function (res) {
+      if (!res) throw new Error("Notion: No response from native handler.");
+      if (res.error) throw new Error(res.error);
+      var status = res.status;
+      var text = res.body || "";
+      if (status < 200 || status >= 300) {
+        var detail = "";
+        try {
+          var j = JSON.parse(text);
+          detail = (j && j.message) || "";
+        } catch (_) {}
+        if (status === 401) throw new Error("Notion (" + status + "): Invalid API secret. Check extension Options." + (detail ? " — " + detail : ""));
+        if (status === 403) throw new Error("Notion (" + status + "): No access. Open your database in Notion → ⋯ → Add connections → select your integration." + (detail ? " — " + detail : ""));
+        if (status === 404) throw new Error("Notion (" + status + "): Database not found. Check Database ID and connect the database to your integration." + (detail ? " — " + detail : ""));
+        throw new Error("Notion (" + status + "): " + (detail || "Request failed"));
+      }
+      return text ? JSON.parse(text) : {};
+    });
+  };
+
+  return queryNotionPagesByWords(notionToken, databaseId, synonyms).then(createPage);
 }
 
 browser.runtime.onMessage.addListener(function (message, sender) {
@@ -330,6 +449,19 @@ browser.runtime.onMessage.addListener(function (message, sender) {
       });
   }
 
+  if (message.type === "checkNotionExisting") {
+    var word = message.word;
+    var baseForm = message.baseForm;
+    return getStoredOptions()
+      .then(function (opts) {
+        if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
+          return { found: false };
+        }
+        return checkNotionForExistingWordOrBaseForm(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm);
+      })
+      .catch(function () { return { found: false }; });
+  }
+
   if (message.type === "saveToNotion") {
     var payload = message.payload;
     if (!payload) {
@@ -348,8 +480,9 @@ browser.runtime.onMessage.addListener(function (message, sender) {
         var dbId = opts.notionDatabaseId.trim();
 
         if (payload.meanings && Array.isArray(payload.meanings) && payload.meanings.length > 0) {
-          return callTaxonomy(payload.original, payload.context, apiKey).then(function (taxonomy) {
-            var promises = payload.meanings.map(function (m) {
+          var sensePromises = payload.meanings.map(function (m) {
+            var senseContext = buildSenseContext(m, payload.context);
+            return callTaxonomy(payload.original, senseContext, apiKey).then(function (taxonomy) {
               var sensePayload = {
                 original: payload.original,
                 translation: m.translation || "",
@@ -360,9 +493,9 @@ browser.runtime.onMessage.addListener(function (message, sender) {
               };
               return saveToNotionApi(sensePayload, token, dbId);
             });
-            return Promise.all(promises).then(function () {
-              return { ok: true, count: payload.meanings.length };
-            });
+          });
+          return Promise.all(sensePromises).then(function () {
+            return { ok: true, count: payload.meanings.length };
           });
         }
 

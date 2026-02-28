@@ -116,6 +116,14 @@ body {
   color: #047857;
 }
 
+.popup-already {
+  display: none;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #047857;
+  font-style: italic;
+}
+
 .btn-settings {
   width: 100%;
   margin-top: 3px;

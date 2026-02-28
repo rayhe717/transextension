@@ -6,6 +6,7 @@
   const translationEl = document.getElementById("translationText");
   const meaningsListEl = document.getElementById("meaningsList");
   const statusEl = document.getElementById("statusText");
+  const alreadyInNotionEl = document.getElementById("alreadyInNotionEl");
 
   let currentPayload = null;
 
@@ -32,6 +33,7 @@
     setBusy(true);
     setStatus("Translating...");
     translationEl.textContent = "";
+    if (alreadyInNotionEl) { alreadyInNotionEl.textContent = ""; alreadyInNotionEl.style.display = "none"; }
     currentPayload = null;
 
     browser.runtime.sendMessage({ type: "translate", text: text })
@@ -89,6 +91,16 @@
         }
         saveBtn.disabled = false;
         setStatus(meanings && meanings.length > 0 ? "Choose sense(s) to save, then click Save." : "Ready to save.");
+        if (alreadyInNotionEl) {
+          alreadyInNotionEl.textContent = "";
+          alreadyInNotionEl.style.display = "none";
+        }
+        browser.runtime.sendMessage({ type: "checkNotionExisting", word: text, baseForm: response.base_form || "" }).then(function (r) {
+          if (alreadyInNotionEl && r && r.found && r.value) {
+            alreadyInNotionEl.textContent = "Already in Notion: " + r.value;
+            alreadyInNotionEl.style.display = "block";
+          }
+        }).catch(function () {});
       })
       .catch(function (err) {
         setBusy(false);

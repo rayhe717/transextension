@@ -94,6 +94,19 @@
   margin-top: 2px;
 }
 
+.stn-tooltip-already {
+  display: none;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #047857;
+  font-style: italic;
+}
+
+.stn-tooltip-root[data-save-success="true"] .stn-tooltip-meaning-row {
+  color: #333;
+  opacity: 1;
+}
+
 .stn-tooltip-actions {
   display: flex;
   align-items: center;

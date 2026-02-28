@@ -138,9 +138,11 @@
   }
 
   function renderTooltip(state) {
-    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings } = state;
+    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings, alreadyInNotion } = state;
     const root = document.getElementById(TOOLTIP_ID);
     if (!root) return;
+
+    root.setAttribute("data-save-success", saveSuccess ? "true" : "false");
 
     const headerOriginal = root.querySelector(".stn-tooltip-original");
     const bodyTranslation = root.querySelector(".stn-tooltip-translation");
@@ -165,26 +167,40 @@
       }
     }
     if (meaningsDiv) {
-      meaningsDiv.innerHTML = "";
-      meaningsDiv.style.display = "none";
       if (meanings && meanings.length > 0) {
         meaningsDiv.style.display = "block";
-        for (var i = 0; i < meanings.length; i++) {
-          var m = meanings[i];
-          var trans = (m.translation || "").trim();
-          var sense = (m.sense || "").trim();
-          var labelText = (i + 1) + ". " + trans + (sense ? " (" + sense + ")" : "");
-          var label = document.createElement("label");
-          label.className = "stn-tooltip-meaning-row";
-          var cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.checked = true;
-          cb.setAttribute("data-meaning-index", String(i));
-          cb.addEventListener("change", updateSaveButtonState);
-          label.appendChild(cb);
-          label.appendChild(document.createTextNode(" " + labelText));
-          meaningsDiv.appendChild(label);
+        if (!saving && !saveSuccess) {
+          meaningsDiv.innerHTML = "";
+          for (var i = 0; i < meanings.length; i++) {
+            var m = meanings[i];
+            var trans = (m.translation || "").trim();
+            var sense = (m.sense || "").trim();
+            var labelText = (i + 1) + ". " + trans + (sense ? " (" + sense + ")" : "");
+            var label = document.createElement("label");
+            label.className = "stn-tooltip-meaning-row";
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = true;
+            cb.setAttribute("data-meaning-index", String(i));
+            cb.addEventListener("change", updateSaveButtonState);
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(" " + labelText));
+            meaningsDiv.appendChild(label);
+          }
         }
+      } else {
+        meaningsDiv.innerHTML = "";
+        meaningsDiv.style.display = "none";
+      }
+    }
+    var alreadyEl = root.querySelector(".stn-tooltip-already");
+    if (alreadyEl) {
+      if (alreadyInNotion) {
+        alreadyEl.textContent = "Already in Notion: " + alreadyInNotion;
+        alreadyEl.style.display = "block";
+      } else {
+        alreadyEl.textContent = "";
+        alreadyEl.style.display = "none";
       }
     }
     if (statusEl) {
@@ -248,6 +264,7 @@
       '<div class="stn-tooltip-body">' +
       '<div class="stn-tooltip-translation stn-tooltip-loading">Translating…</div>' +
       '<div class="stn-tooltip-meanings"></div>' +
+      '<div class="stn-tooltip-already"></div>' +
       '<div class="stn-tooltip-actions">' +
       '<button type="button" class="stn-tooltip-btn-save" disabled>Save</button>' +
       '<span class="stn-tooltip-status"></span>' +
@@ -371,6 +388,22 @@
         meanings: meanings || undefined,
       });
       flushTooltipPaint();
+      browser.runtime.sendMessage({ type: "checkNotionExisting", word: thisOriginal, baseForm: baseForm }).then(function (r) {
+        if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== thisOriginal) return;
+        if (r && r.found && r.value) {
+          renderTooltip({
+            original: thisOriginal,
+            translation,
+            loading: false,
+            error: null,
+            saving: false,
+            saveSuccess: false,
+            saveError: null,
+            meanings: meanings || undefined,
+            alreadyInNotion: r.value,
+          });
+        }
+      }).catch(function () {});
     }
 
     function handleTranslateError(err) {
