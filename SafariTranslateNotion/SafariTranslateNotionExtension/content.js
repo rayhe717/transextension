@@ -332,7 +332,7 @@
         saveError: null,
       });
       if (currentPayload && currentPayload.original === thisOriginal) currentPayload.translation = null;
-    }, 35000);
+    }, 55000);
 
     function handleTranslateResponse(response) {
       if (responseReceived) return;

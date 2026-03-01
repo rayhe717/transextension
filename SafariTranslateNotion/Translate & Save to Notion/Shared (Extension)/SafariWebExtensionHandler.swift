@@ -1,5 +1,9 @@
 import SafariServices
+import Security
 import os.log
+
+private let kOptionsKeychainService = "com.yourCompany.Translate-Save-to-Notion.options"
+private let kOptionsKeys = ["deepseekApiKey", "notionToken", "notionDatabaseId"]
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
@@ -22,8 +26,64 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             handleApiRequest(msg, context: context)
             return
         }
+        if type == "getPersistedOptions" {
+            respond(with: loadOptionsFromKeychain(), context: context)
+            return
+        }
+        if type == "persistOptions" {
+            let opts = msg["options"] as? [String: Any] ?? [:]
+            saveOptionsToKeychain(opts)
+            respond(with: ["ok": true], context: context)
+            return
+        }
 
         respond(with: ["echo": msg], context: context)
+    }
+
+    private func loadOptionsFromKeychain() -> [String: Any] {
+        var result: [String: Any] = [:]
+        for key in kOptionsKeys {
+            if let value = keychainRead(service: kOptionsKeychainService, account: key) {
+                result[key] = value
+            }
+        }
+        return result
+    }
+
+    private func saveOptionsToKeychain(_ options: [String: Any]) {
+        for key in kOptionsKeys {
+            guard let value = options[key] as? String else { continue }
+            keychainWrite(service: kOptionsKeychainService, account: key, value: value)
+        }
+    }
+
+    private func keychainRead(service: String, account: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let str = String(data: data, encoding: .utf8) else { return nil }
+        return str
+    }
+
+    private func keychainWrite(service: String, account: String, value: String) {
+        guard let data = value.data(using: .utf8) else { return }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+        var addQuery = query
+        addQuery[kSecValueData as String] = data
+        SecItemAdd(addQuery as CFDictionary, nil)
     }
 
     private func handleApiRequest(_ msg: [String: Any], context: NSExtensionContext) {
@@ -39,7 +99,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 30
+        request.timeoutInterval = 45
 
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)

@@ -25,13 +25,28 @@
   }
 
   function load() {
-    browser.storage.local.get(DEFAULTS).then(function (items) {
+    function applyItems(items) {
       document.getElementById("deepseekApiKey").value = items.deepseekApiKey || "";
       document.getElementById("notionToken").value = items.notionToken || "";
       document.getElementById("notionDatabaseId").value = items.notionDatabaseId || "";
       document.getElementById("targetLanguage").value = items.targetLanguage || DEFAULTS.targetLanguage;
       var max = parseInt(items.maxSelectionLength, 10);
       document.getElementById("maxSelectionLength").value = (isNaN(max) || max < 20 || max > 500) ? 120 : max;
+    }
+    browser.storage.local.get(DEFAULTS).then(function (items) {
+      applyItems(items);
+      browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "getPersistedOptions" })
+        .then(function (keychain) {
+          if (keychain && typeof keychain === "object" && !keychain.error) {
+            var merged = Object.assign({}, items, keychain);
+            if (keychain.deepseekApiKey !== undefined) merged.deepseekApiKey = keychain.deepseekApiKey;
+            if (keychain.notionToken !== undefined) merged.notionToken = keychain.notionToken;
+            if (keychain.notionDatabaseId !== undefined) merged.notionDatabaseId = keychain.notionDatabaseId;
+            applyItems(merged);
+            return browser.storage.local.set(merged);
+          }
+        })
+        .catch(function () {});
     }).catch(function () {});
   }
 
@@ -44,13 +59,18 @@
     var maxRaw = parseInt(document.getElementById("maxSelectionLength").value, 10);
     const maxSelectionLength = (isNaN(maxRaw) || maxRaw < 20 || maxRaw > 500) ? 120 : maxRaw;
 
-    browser.storage.local.set({
+    var toStore = {
       deepseekApiKey,
       notionToken,
       notionDatabaseId,
       targetLanguage,
       maxSelectionLength,
-    }).then(function () {
+    };
+    browser.storage.local.set(toStore).then(function () {
+      browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+        type: "persistOptions",
+        options: { deepseekApiKey, notionToken, notionDatabaseId },
+      }).catch(function () {});
       showStatus("Settings saved.", false);
     }).catch(function () {
       showStatus("Failed to save settings.", true);

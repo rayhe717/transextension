@@ -525,3 +525,21 @@ browser.runtime.onMessage.addListener(function (message, sender) {
 
   return Promise.resolve({ error: "Unknown message type" });
 });
+
+// On load: restore API key and Notion credentials from Keychain so they persist across restarts/reinstalls
+browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "getPersistedOptions" })
+  .then(function (keychain) {
+    if (!keychain || typeof keychain !== "object" || keychain.error) return;
+    var hasAny = (keychain.deepseekApiKey && keychain.deepseekApiKey.length) ||
+      (keychain.notionToken && keychain.notionToken.length) ||
+      (keychain.notionDatabaseId && keychain.notionDatabaseId.length);
+    if (!hasAny) return;
+    return getStoredOptions().then(function (current) {
+      var merged = Object.assign({}, current);
+      if (keychain.deepseekApiKey !== undefined) merged.deepseekApiKey = keychain.deepseekApiKey;
+      if (keychain.notionToken !== undefined) merged.notionToken = keychain.notionToken;
+      if (keychain.notionDatabaseId !== undefined) merged.notionDatabaseId = keychain.notionDatabaseId;
+      return browser.storage.local.set(merged);
+    });
+  })
+  .catch(function () {});
