@@ -262,6 +262,20 @@
   color: #b91c1c;
 }
 
+.stn-lookup-from-notion {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.stn-lookup-from-deepseek {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #c4b5fd;
+  color: #5b21b6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .stn-tooltip-root[data-save-success="true"] .stn-tooltip-meaning-row {
   color: #333;
   opacity: 1;

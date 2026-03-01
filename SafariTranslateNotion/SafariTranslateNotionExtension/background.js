@@ -667,6 +667,38 @@ var WRITING_SUPPORT_ACTIONS = {
 
 var WRITING_VOCAB_PROMPT_MAX = 500;
 
+function getChineseToEnglishSuggestions(chineseText, apiKey) {
+  var prompt = "The user has a Chinese word or phrase. Provide exactly three possible English translations or equivalents, one per line. No numbering, no explanation, just the three lines of text.";
+  var body = JSON.stringify({
+    model: "deepseek-chat",
+    messages: [
+      { role: "user", content: prompt + "\n\nChinese: " + chineseText },
+    ],
+    max_tokens: 150,
+    temperature: 0.3,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: DEEPSEEK_URL,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey,
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error) throw new Error(res && res.error ? res.error : "No response");
+    if (res.status < 200 || res.status >= 300) throw new Error("Request failed");
+    var data = {};
+    try { data = JSON.parse(res.body || "{}"); } catch (_) {}
+    var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    var text = (content && typeof content === "string") ? content.trim() : "";
+    if (!text) return null;
+    var lines = text.split(/\n/).map(function (s) { return s.replace(/^\s*\d+[.)]\s*/, "").trim(); }).filter(Boolean);
+    return lines.slice(0, 3).join("\n") || null;
+  });
+}
+
 function writingSupportWithDeepSeek(text, action, vocabLines, apiKey) {
   var promptSpec = WRITING_SUPPORT_ACTIONS[action] || WRITING_SUPPORT_ACTIONS.writing_comment;
   var systemContent = "You are a fiction writing assistant. " + promptSpec + " Reply in plain text, no JSON.";
@@ -861,17 +893,28 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
           var token = (opts.notionToken && opts.notionToken.trim()) ? opts.notionToken.trim() : "";
           var dbId = (opts.notionDatabaseId && opts.notionDatabaseId.trim()) ? opts.notionDatabaseId.trim() : "";
           if (!token || !dbId) throw new Error("Set your Notion API secret and Database ID in extension Options.");
-          return queryNotionPagesWhereTranslationContainsAny(token, dbId, text);
-        })
-        .then(function (entries) {
-          if (!entries || entries.length === 0) {
-            return { result: "No matching words in your Notion database." };
-          }
-          var lines = entries.map(function (e) {
-            var part = e.word + (e.translation ? " — " + e.translation : "");
-            return part + (e.sense ? " (" + e.sense + ")" : "");
+          return queryNotionPagesWhereTranslationContainsAny(token, dbId, text).then(function (entries) {
+            return { opts: opts, entries: entries || [] };
           });
-          return { result: lines.join("\n") };
+        })
+        .then(function (data) {
+          var entries = data.entries;
+          if (entries.length > 0) {
+            var lines = entries.map(function (e) {
+              var part = e.word + (e.translation ? " — " + e.translation : "");
+              return part + (e.sense ? " (" + e.sense + ")" : "");
+            });
+            return Promise.resolve({ fromNotion: lines.join("\n"), fromDeepSeek: null });
+          }
+          var apiKey = (data.opts.deepseekApiKey && data.opts.deepseekApiKey.trim()) ? data.opts.deepseekApiKey.trim() : "";
+          if (!apiKey) {
+            return Promise.resolve({ fromNotion: null, fromDeepSeek: null, error: "No matches in your Notion database. Set your DeepSeek API key in Options to get AI suggestions." });
+          }
+          return getChineseToEnglishSuggestions(text, apiKey).then(function (suggestions) {
+            return { fromNotion: null, fromDeepSeek: suggestions || null };
+          }).catch(function (err) {
+            return { fromNotion: null, fromDeepSeek: null, error: (err && err.message) ? err.message : "No matches in Notion and suggestion request failed." };
+          });
         })
         .then(reply)
         .catch(function (err) {

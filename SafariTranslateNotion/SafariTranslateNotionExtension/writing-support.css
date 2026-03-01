@@ -161,3 +161,17 @@ body {
   border-color: #fecaca;
   color: #b91c1c;
 }
+
+.writing-support-lookup-from-notion {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.writing-support-lookup-from-deepseek {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #c4b5fd;
+  color: #5b21b6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

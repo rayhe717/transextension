@@ -241,6 +241,21 @@
             if (r && r.error) {
               popupWritingResult.textContent = r.error;
               popupWritingResult.className = "popup-writing-result error";
+            } else if (action === "lookup_chinese" && (r && (r.fromNotion != null || r.fromDeepSeek != null))) {
+              popupWritingResult.classList.remove("error");
+              popupWritingResult.innerHTML = "";
+              if (r.fromNotion) {
+                var fromDb = document.createElement("div");
+                fromDb.className = "popup-lookup-from-notion";
+                fromDb.textContent = r.fromNotion;
+                popupWritingResult.appendChild(fromDb);
+              }
+              if (r.fromDeepSeek) {
+                var fromAi = document.createElement("div");
+                fromAi.className = "popup-lookup-from-deepseek";
+                fromAi.textContent = "Suggested (not in your database):\n" + r.fromDeepSeek;
+                popupWritingResult.appendChild(fromAi);
+              }
             } else {
               popupWritingResult.textContent = (r && r.result) ? r.result : "";
               popupWritingResult.classList.remove("error");

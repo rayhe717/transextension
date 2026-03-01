@@ -392,6 +392,21 @@
               if (r && r.error) {
                 writingResultEl.textContent = r.error;
                 writingResultEl.classList.add("stn-tooltip-writing-error");
+              } else if (action === "lookup_chinese" && (r && (r.fromNotion != null || r.fromDeepSeek != null))) {
+                writingResultEl.classList.remove("stn-tooltip-writing-error");
+                writingResultEl.innerHTML = "";
+                if (r.fromNotion) {
+                  var fromDb = document.createElement("div");
+                  fromDb.className = "stn-lookup-from-notion";
+                  fromDb.textContent = r.fromNotion;
+                  writingResultEl.appendChild(fromDb);
+                }
+                if (r.fromDeepSeek) {
+                  var fromAi = document.createElement("div");
+                  fromAi.className = "stn-lookup-from-deepseek";
+                  fromAi.textContent = "Suggested (not in your database):\n" + r.fromDeepSeek;
+                  writingResultEl.appendChild(fromAi);
+                }
               } else {
                 writingResultEl.textContent = (r && r.result) ? r.result : "";
                 writingResultEl.classList.remove("stn-tooltip-writing-error");
