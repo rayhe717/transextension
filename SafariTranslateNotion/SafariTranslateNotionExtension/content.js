@@ -27,6 +27,14 @@
   var TOOLTIP_DEBOUNCE_MS = 400;
   let suppressMouseUpUntil = 0;
 
+  function messageErrorFriendly(err) {
+    var msg = (err && err.message) ? String(err.message) : "";
+    if (/tab not found|Invalid call to runtime\.sendMessage/i.test(msg)) {
+      return "The page may have changed or the tab was closed. Close this tooltip and try again on the current page.";
+    }
+    return msg || "Request failed.";
+  }
+
   function isIgnoredElement(node) {
     if (!node || !node.getAttribute) return false;
     const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
@@ -269,9 +277,11 @@
     tooltipEl.innerHTML =
       '<div class="stn-tooltip-header">' +
       '<span class="stn-tooltip-original">' + escapedOriginal + '</span>' +
+      '<button type="button" class="stn-tooltip-switch" aria-label="Switch mode">Writing</button>' +
       '<button type="button" class="stn-tooltip-close" aria-label="Close">×</button>' +
       "</div>" +
       '<div class="stn-tooltip-body">' +
+      '<div class="stn-tooltip-panel stn-tooltip-panel-translate">' +
       '<div class="stn-tooltip-translation stn-tooltip-loading">Translating…</div>' +
       '<div class="stn-tooltip-meanings"></div>' +
       '<div class="stn-tooltip-already"></div>' +
@@ -280,10 +290,31 @@
       '<button type="button" class="stn-tooltip-btn-save" disabled>Save</button>' +
       '<span class="stn-tooltip-status"></span>' +
       "</div>" +
+      "</div>" +
+      '<div class="stn-tooltip-panel stn-tooltip-panel-writing" style="display:none">' +
+      '<div class="stn-tooltip-writing-actions">' +
+      '<button type="button" class="stn-tooltip-btn-writing" data-action="writing_comment">Comment</button>' +
+      '<button type="button" class="stn-tooltip-btn-writing" data-action="better_word">Better word</button>' +
+      '<button type="button" class="stn-tooltip-btn-writing" data-action="suggest_word">Suggest word</button>' +
+      '<button type="button" class="stn-tooltip-btn-writing" data-action="lookup_chinese">Look up</button>' +
+      "</div>" +
+      '<div class="stn-tooltip-writing-result"></div>' +
+      "</div>" +
       "</div>";
 
     const closeBtn = tooltipEl.querySelector(".stn-tooltip-close");
     const saveBtn = tooltipEl.querySelector(".stn-tooltip-btn-save");
+    const switchBtn = tooltipEl.querySelector(".stn-tooltip-switch");
+    const panelTranslate = tooltipEl.querySelector(".stn-tooltip-panel-translate");
+    const panelWriting = tooltipEl.querySelector(".stn-tooltip-panel-writing");
+    var tooltipMode = "translate";
+
+    function setTooltipMode(mode) {
+      tooltipMode = mode;
+      if (panelTranslate) panelTranslate.style.display = mode === "translate" ? "" : "none";
+      if (panelWriting) panelWriting.style.display = mode === "writing" ? "" : "none";
+      if (switchBtn) switchBtn.textContent = mode === "translate" ? "Writing" : "Translate";
+    }
 
     tooltipEl.addEventListener("mouseup", function (ev) { ev.stopPropagation(); }, true);
     tooltipEl.addEventListener("mousedown", function () { suppressMouseUpUntil = Date.now() + 500; }, true);
@@ -293,12 +324,88 @@
       removeTooltip();
       document.removeEventListener("keydown", onKeyDown);
     });
+    if (switchBtn) {
+      switchBtn.addEventListener("click", function () {
+        if (tooltipMode === "translate") {
+          responseReceived = true;
+          clearTimeout(timeoutId);
+        }
+        setTooltipMode(tooltipMode === "translate" ? "writing" : "translate");
+        browser.storage.local.set({ defaultPanelMode: tooltipMode });
+        if (tooltipMode === "translate" && currentPayload && currentPayload.original && !currentPayload.translation) {
+          responseReceived = false;
+          timeoutId = setTimeout(function () {
+            if (responseReceived) return;
+            if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== thisOriginal) return;
+            responseReceived = true;
+            renderTooltip({
+              original: thisOriginal,
+              translation: null,
+              loading: false,
+              error: "Translation timed out. In Options, check your DeepSeek API key and internet connection.",
+              saving: false,
+              saveSuccess: false,
+              saveError: null,
+            });
+            if (currentPayload && currentPayload.original === thisOriginal) currentPayload.translation = null;
+          }, 55000);
+          renderTooltip({
+            original: thisOriginal,
+            translation: null,
+            loading: true,
+            error: null,
+            saving: false,
+            saveSuccess: false,
+            saveError: null,
+          });
+          browser.runtime.sendMessage({ type: "translate", text: thisOriginal })
+            .then(handleTranslateResponse)
+            .catch(handleTranslateError);
+        }
+      });
+      browser.storage.local.get("defaultPanelMode").then(function (o) {
+        var mode = (o.defaultPanelMode === "writing") ? "writing" : "translate";
+        setTooltipMode(mode);
+      });
+    }
 
     saveBtn.addEventListener("click", function () {
       var payload = buildSavePayload();
       if (!payload) return;
       saveToNotion(payload);
     });
+
+    var writingResultEl = tooltipEl.querySelector(".stn-tooltip-writing-result");
+    var writingBtns = tooltipEl.querySelectorAll(".stn-tooltip-btn-writing");
+    for (var b = 0; b < writingBtns.length; b++) {
+      (function (btn) {
+        btn.addEventListener("click", function () {
+          var action = btn.getAttribute("data-action") || "writing_comment";
+          var text = (currentPayload && currentPayload.original) ? currentPayload.original : "";
+          if (!text || !writingResultEl) return;
+          writingResultEl.style.display = "block";
+          writingResultEl.textContent = "Loading…";
+          writingResultEl.className = "stn-tooltip-writing-result";
+          browser.runtime.sendMessage({ type: "writingSupport", text: text, action: action })
+            .then(function (r) {
+              if (!writingResultEl.parentNode) return;
+              if (r && r.error) {
+                writingResultEl.textContent = r.error;
+                writingResultEl.classList.add("stn-tooltip-writing-error");
+              } else {
+                writingResultEl.textContent = (r && r.result) ? r.result : "";
+                writingResultEl.classList.remove("stn-tooltip-writing-error");
+              }
+            })
+            .catch(function (e) {
+              if (writingResultEl.parentNode) {
+                writingResultEl.textContent = messageErrorFriendly(e);
+                writingResultEl.classList.add("stn-tooltip-writing-error");
+              }
+            });
+        });
+      })(writingBtns[b]);
+    }
 
     document.body.appendChild(backdropEl);
     document.body.appendChild(tooltipEl);
@@ -399,22 +506,31 @@
         meanings: meanings || undefined,
       });
       flushTooltipPaint();
-      browser.runtime.sendMessage({ type: "checkNotionExisting", word: thisOriginal, baseForm: baseForm }).then(function (r) {
-        if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== thisOriginal) return;
-        if (r && r.found && r.value) {
-          renderTooltip({
-            original: thisOriginal,
-            translation,
-            loading: false,
-            error: null,
-            saving: false,
-            saveSuccess: false,
-            saveError: null,
-            meanings: meanings || undefined,
-            alreadyInNotion: r.value,
-          });
-        }
-      }).catch(function () {});
+      setTimeout(function () {
+        var existingPromise = browser.runtime.sendMessage({ type: "checkNotionExisting", word: thisOriginal, baseForm: baseForm }).catch(function () { return null; });
+        var synonymInPromise = browser.runtime.sendMessage({ type: "getAlsoSynonymIn", word: thisOriginal, baseForm: baseForm }).catch(function () { return null; });
+        Promise.all([existingPromise, synonymInPromise]).then(function (results) {
+          try {
+            if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== thisOriginal) return;
+            var r = results[0];
+            var r2 = results[1];
+            var alreadyInNotion = (r && r.found && r.value) ? r.value : undefined;
+            var alsoSynonymIn = (r2 && r2.alsoSynonymIn && Array.isArray(r2.alsoSynonymIn) && r2.alsoSynonymIn.length > 0) ? r2.alsoSynonymIn : undefined;
+            renderTooltip({
+              original: thisOriginal,
+              translation,
+              loading: false,
+              error: null,
+              saving: false,
+              saveSuccess: false,
+              saveError: null,
+              meanings: meanings || undefined,
+              alreadyInNotion: alreadyInNotion,
+              alsoSynonymIn: alsoSynonymIn,
+            });
+          } catch (e) {}
+        }).catch(function () {});
+      }, 0);
     }
 
     function handleTranslateError(err) {
@@ -424,7 +540,7 @@
       clearTimeout(timeoutId);
       renderTooltip({
         original: thisOriginal, translation: null, loading: false,
-        error: (err && err.message) || "Translation failed",
+        error: messageErrorFriendly(err) || "Translation failed",
         saving: false, saveSuccess: false, saveError: null,
       });
       flushTooltipPaint();
@@ -464,7 +580,7 @@
       .catch(function (err) {
         renderTooltip({
           original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation),
-          loading: false, error: null, saving: false, saveSuccess: false, saveError: (err && err.message) || "Failed to save",
+          loading: false, error: null, saving: false, saveSuccess: false, saveError: messageErrorFriendly(err) || "Failed to save",
           meanings: currentPayload && currentPayload.meanings || undefined,
         });
         flushTooltipPaint();

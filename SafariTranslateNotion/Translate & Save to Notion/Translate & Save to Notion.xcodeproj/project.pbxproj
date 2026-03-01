@@ -51,6 +51,12 @@
 		AA00000A2F4EECBA00A18B2C /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = AA0000072F4EECBA00A18B2C /* popup.html */; };
 		AA00000B2F4EECBA00A18B2C /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = AA0000082F4EECBA00A18B2C /* popup.css */; };
 		AA00000C2F4EECBA00A18B2C /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000092F4EECBA00A18B2C /* popup.js */; };
+		AA0000102F4EECBA00A18B2C /* writing-support.html in Resources */ = {isa = PBXBuildFile; fileRef = AA00000D2F4EECBA00A18B2C /* writing-support.html */; };
+		AA0000112F4EECBA00A18B2C /* writing-support.js in Resources */ = {isa = PBXBuildFile; fileRef = AA00000E2F4EECBA00A18B2C /* writing-support.js */; };
+		AA0000122F4EECBA00A18B2C /* writing-support.css in Resources */ = {isa = PBXBuildFile; fileRef = AA00000F2F4EECBA00A18B2C /* writing-support.css */; };
+		AA0000132F4EECBA00A18B2C /* writing-support.html in Resources */ = {isa = PBXBuildFile; fileRef = AA00000D2F4EECBA00A18B2C /* writing-support.html */; };
+		AA0000142F4EECBA00A18B2C /* writing-support.js in Resources */ = {isa = PBXBuildFile; fileRef = AA00000E2F4EECBA00A18B2C /* writing-support.js */; };
+		AA0000152F4EECBA00A18B2C /* writing-support.css in Resources */ = {isa = PBXBuildFile; fileRef = AA00000F2F4EECBA00A18B2C /* writing-support.css */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,6 +134,9 @@
 		AA0000072F4EECBA00A18B2C /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = ../../SafariTranslateNotionExtension/popup.html; sourceTree = "<group>"; };
 		AA0000082F4EECBA00A18B2C /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = ../../SafariTranslateNotionExtension/popup.css; sourceTree = "<group>"; };
 		AA0000092F4EECBA00A18B2C /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../SafariTranslateNotionExtension/popup.js; sourceTree = "<group>"; };
+		AA00000D2F4EECBA00A18B2C /* writing-support.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = writing-support.html; path = ../../SafariTranslateNotionExtension/writing-support.html; sourceTree = "<group>"; };
+		AA00000E2F4EECBA00A18B2C /* writing-support.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = writing-support.js; path = ../../SafariTranslateNotionExtension/writing-support.js; sourceTree = "<group>"; };
+		AA00000F2F4EECBA00A18B2C /* writing-support.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = writing-support.css; path = ../../SafariTranslateNotionExtension/writing-support.css; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -267,6 +276,9 @@
 				AA0000072F4EECBA00A18B2C /* popup.html */,
 				AA0000082F4EECBA00A18B2C /* popup.css */,
 				AA0000092F4EECBA00A18B2C /* popup.js */,
+				AA00000D2F4EECBA00A18B2C /* writing-support.html */,
+				AA00000E2F4EECBA00A18B2C /* writing-support.js */,
+				AA00000F2F4EECBA00A18B2C /* writing-support.css */,
 				AA0000012F4EECBA00A18B2C /* images */,
 			);
 			name = Resources;
@@ -444,6 +456,9 @@
 				AA0000042F4EECBA00A18B2C /* popup.html in Resources */,
 				AA0000052F4EECBA00A18B2C /* popup.css in Resources */,
 				AA0000062F4EECBA00A18B2C /* popup.js in Resources */,
+				AA0000102F4EECBA00A18B2C /* writing-support.html in Resources */,
+				AA0000112F4EECBA00A18B2C /* writing-support.js in Resources */,
+				AA0000122F4EECBA00A18B2C /* writing-support.css in Resources */,
 				AA0000022F4EECBA00A18B2C /* images in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -462,6 +477,9 @@
 				AA00000A2F4EECBA00A18B2C /* popup.html in Resources */,
 				AA00000B2F4EECBA00A18B2C /* popup.css in Resources */,
 				AA00000C2F4EECBA00A18B2C /* popup.js in Resources */,
+				AA0000132F4EECBA00A18B2C /* writing-support.html in Resources */,
+				AA0000142F4EECBA00A18B2C /* writing-support.js in Resources */,
+				AA0000152F4EECBA00A18B2C /* writing-support.css in Resources */,
 				AA0000032F4EECBA00A18B2C /* images in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

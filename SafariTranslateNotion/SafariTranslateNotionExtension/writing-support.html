@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Translate &amp; Writing support</title>
+    <link rel="stylesheet" href="writing-support.css" />
+  </head>
+  <body>
+    <main class="writing-support-root">
+      <header class="writing-support-header">
+        <h1 class="writing-support-title">Translate &amp; Writing</h1>
+        <div class="writing-support-switch-wrap">
+          <button type="button" id="btnModeWriting" class="writing-support-switch-btn active">Writing</button>
+          <button type="button" id="btnModeTranslate" class="writing-support-switch-btn">Translation</button>
+        </div>
+      </header>
+
+      <div id="panelWriting" class="writing-support-panel">
+        <p class="writing-support-intro">Get feedback, a better word, or a suggested word. Your Notion vocab is used when available.</p>
+        <label for="writingText" class="writing-support-label">Text</label>
+        <textarea id="writingText" class="writing-support-textarea" rows="8" placeholder="Paste a sentence or paragraph…"></textarea>
+        <label for="writingAction" class="writing-support-label">Action</label>
+        <select id="writingAction" class="writing-support-select">
+          <option value="writing_comment">Writing comments</option>
+          <option value="better_word">Better word</option>
+          <option value="suggest_word">Suggest word</option>
+          <option value="lookup_chinese">Look up (Chinese → English from Notion)</option>
+        </select>
+        <button id="writingSubmit" class="writing-support-btn" type="button">Get feedback</button>
+        <div id="writingResult" class="writing-support-result"></div>
+      </div>
+
+      <div id="panelTranslate" class="writing-support-panel" style="display:none">
+        <p class="writing-support-intro">Translate to your target language (set in Options).</p>
+        <label for="translateText" class="writing-support-label">Text</label>
+        <textarea id="translateText" class="writing-support-textarea" rows="8" placeholder="Paste a word or phrase…"></textarea>
+        <button id="translateSubmit" class="writing-support-btn" type="button">Translate</button>
+        <div id="translateResult" class="writing-support-result"></div>
+      </div>
+    </main>
+    <script src="writing-support.js"></script>
+  </body>
+</html>

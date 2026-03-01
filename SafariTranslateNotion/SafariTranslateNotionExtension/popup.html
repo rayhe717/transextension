@@ -8,18 +8,42 @@
   </head>
   <body>
     <main class="popup-root">
-      <h1 class="popup-title">Translate & Save</h1>
-      <textarea id="inputText" class="popup-input" rows="4" maxlength="500" placeholder="Type a word or phrase..."></textarea>
-      <div class="popup-actions">
-        <button id="translateBtn" class="btn btn-primary" type="button">Translate</button>
-        <button id="saveBtn" class="btn btn-secondary" type="button" disabled>Save</button>
+      <header class="popup-header">
+        <h1 class="popup-title">Translate & Save</h1>
+        <button type="button" id="popupModeSwitch" class="popup-header-link popup-mode-switch" aria-label="Switch mode">Writing</button>
+      </header>
+      <div id="popupPanelTranslate" class="popup-panel">
+        <section class="popup-input-section">
+          <textarea id="inputText" class="popup-input" rows="4" maxlength="500" placeholder="Type a word or phrase..."></textarea>
+          <div class="popup-actions">
+            <button id="translateBtn" class="btn btn-primary btn-translate" type="button">Translate</button>
+            <button id="saveBtn" class="btn btn-secondary" type="button" disabled>Save</button>
+          </div>
+        </section>
+        <section class="popup-output-section">
+          <p id="translationText" class="popup-translation"></p>
+          <div id="meaningsList" class="popup-meanings"></div>
+          <p id="statusText" class="popup-status"></p>
+          <p id="alreadyInNotionEl" class="popup-already"></p>
+          <p id="alsoSynonymInEl" class="popup-also-synonym"></p>
+        </section>
       </div>
-      <p id="translationText" class="popup-translation"></p>
-      <div id="meaningsList" class="popup-meanings"></div>
-      <p id="statusText" class="popup-status"></p>
-      <p id="alreadyInNotionEl" class="popup-already"></p>
-      <p id="alsoSynonymInEl" class="popup-also-synonym"></p>
-      <button id="settingsBtn" class="btn btn-primary btn-settings" type="button">Open Settings</button>
+      <div id="popupPanelWriting" class="popup-panel" style="display:none">
+        <section class="popup-input-section">
+          <label for="popupWritingText" class="popup-label">Text</label>
+          <textarea id="popupWritingText" class="popup-input" rows="4" maxlength="500" placeholder="Paste a sentence or paragraph…"></textarea>
+        </section>
+        <section class="popup-writing-actions">
+          <button type="button" class="popup-btn-writing" data-action="writing_comment">Comment</button>
+          <button type="button" class="popup-btn-writing" data-action="better_word">Better word</button>
+          <button type="button" class="popup-btn-writing" data-action="suggest_word">Suggest word</button>
+          <button type="button" class="popup-btn-writing" data-action="lookup_chinese">Look up</button>
+        </section>
+        <div id="popupWritingResult" class="popup-writing-result"></div>
+      </div>
+      <footer class="popup-footer">
+        <button id="settingsBtn" class="btn btn-primary btn-settings" type="button">Open Settings</button>
+      </footer>
     </main>
     <script src="popup.js"></script>
   </body>

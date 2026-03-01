@@ -351,6 +351,184 @@ function queryNotionPagesWhereSynonymsContain(notionToken, databaseId, word) {
   }).catch(function () { return []; });
 }
 
+function queryNotionPagesWhereTranslationContains(notionToken, databaseId, text) {
+  var textTrim = (text && typeof text === "string") ? text.trim() : "";
+  if (!textTrim) return Promise.resolve([]);
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId || !notionToken) return Promise.resolve([]);
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var body = JSON.stringify({
+    filter: { property: "Translation", rich_text: { contains: textTrim } },
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+    page_size: 100,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: url,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + notionToken,
+      "Notion-Version": "2022-06-28",
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error || res.status < 200 || res.status >= 300) return [];
+    try {
+      var data = JSON.parse(res.body || "{}");
+      var results = data.results || [];
+      var out = [];
+      for (var i = 0; i < results.length; i++) {
+        var p = results[i];
+        var wordT = (p.properties && p.properties.Word && p.properties.Word.title && p.properties.Word.title[0]) ? p.properties.Word.title[0].plain_text : "";
+        var transT = (p.properties && p.properties.Translation && p.properties.Translation.rich_text && p.properties.Translation.rich_text[0]) ? p.properties.Translation.rich_text[0].plain_text : "";
+        var senseT = (p.properties && p.properties.Sense && p.properties.Sense.rich_text && p.properties.Sense.rich_text[0]) ? p.properties.Sense.rich_text[0].plain_text : "";
+        if (wordT) out.push({ word: wordT, translation: transT || "", sense: senseT || "" });
+      }
+      return out;
+    } catch (_) { return []; }
+  }).catch(function () { return []; });
+}
+
+function queryNotionPagesWhereTranslationContainsAny(notionToken, databaseId, text) {
+  var textTrim = (text && typeof text === "string") ? text.trim() : "";
+  if (!textTrim) return Promise.resolve([]);
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId || !notionToken) return Promise.resolve([]);
+  var terms = [textTrim];
+  for (var i = 0; i < textTrim.length && i < 8; i++) {
+    var ch = textTrim[i];
+    if (ch && terms.indexOf(ch) === -1) terms.push(ch);
+  }
+  if (terms.length > 10) terms = terms.slice(0, 10);
+  var orClauses = terms.map(function (t) {
+    return { property: "Translation", rich_text: { contains: t } };
+  });
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var body = JSON.stringify({
+    filter: orClauses.length === 1 ? orClauses[0] : { or: orClauses },
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+    page_size: 100,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: url,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + notionToken,
+      "Notion-Version": "2022-06-28",
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error || res.status < 200 || res.status >= 300) return [];
+    try {
+      var data = JSON.parse(res.body || "{}");
+      var results = data.results || [];
+      var seen = {};
+      var out = [];
+      for (var i = 0; i < results.length; i++) {
+        var p = results[i];
+        var wordT = (p.properties && p.properties.Word && p.properties.Word.title && p.properties.Word.title[0]) ? p.properties.Word.title[0].plain_text : "";
+        if (!wordT || seen[wordT]) continue;
+        seen[wordT] = true;
+        var transT = (p.properties && p.properties.Translation && p.properties.Translation.rich_text && p.properties.Translation.rich_text[0]) ? p.properties.Translation.rich_text[0].plain_text : "";
+        var senseT = (p.properties && p.properties.Sense && p.properties.Sense.rich_text && p.properties.Sense.rich_text[0]) ? p.properties.Sense.rich_text[0].plain_text : "";
+        out.push({ word: wordT, translation: transT || "", sense: senseT || "" });
+      }
+      return out;
+    } catch (_) { return []; }
+  }).catch(function () { return []; });
+}
+
+function fetchNotionVocabSample(notionToken, databaseId, limit) {
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId || !notionToken) return Promise.resolve([]);
+  var pageSize = Math.min(Math.max(parseInt(limit, 10) || 40, 1), 100);
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var body = JSON.stringify({
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+    page_size: pageSize,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: url,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + notionToken,
+      "Notion-Version": "2022-06-28",
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error || res.status < 200 || res.status >= 300) return [];
+    try {
+      var data = JSON.parse(res.body || "{}");
+      return parseNotionVocabPageResults(data.results || []);
+    } catch (_) { return []; }
+  }).catch(function () { return []; });
+}
+
+var NOTION_VOCAB_MAX_FOR_WRITING = 500;
+
+function parseNotionVocabPageResults(results) {
+  var out = [];
+  for (var i = 0; i < (results || []).length; i++) {
+    var p = results[i];
+    var wordT = (p.properties && p.properties.Word && p.properties.Word.title && p.properties.Word.title[0]) ? p.properties.Word.title[0].plain_text : "";
+    var transT = (p.properties && p.properties.Translation && p.properties.Translation.rich_text && p.properties.Translation.rich_text[0]) ? p.properties.Translation.rich_text[0].plain_text : "";
+    var senseT = (p.properties && p.properties.Sense && p.properties.Sense.rich_text && p.properties.Sense.rich_text[0]) ? p.properties.Sense.rich_text[0].plain_text : "";
+    if (wordT) out.push({ word: wordT, translation: transT || "", sense: senseT || "" });
+  }
+  return out;
+}
+
+function fetchNotionVocabPaginated(notionToken, databaseId, maxEntries) {
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId || !notionToken) return Promise.resolve([]);
+  var cap = Math.min(Math.max(parseInt(maxEntries, 10) || NOTION_VOCAB_MAX_FOR_WRITING, 1), 1000);
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var all = [];
+  var cursor = null;
+
+  function doQuery() {
+    var body = {
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
+      page_size: 100,
+    };
+    if (cursor) body.start_cursor = cursor;
+    return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+      type: "apiRequest",
+      url: url,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + notionToken,
+        "Notion-Version": "2022-06-28",
+      },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      if (!res || res.error || res.status < 200 || res.status >= 300) return { results: [], next_cursor: null };
+      try {
+        var data = JSON.parse(res.body || "{}");
+        var results = data.results || [];
+        var parsed = parseNotionVocabPageResults(results);
+        for (var j = 0; j < parsed.length && all.length < cap; j++) all.push(parsed[j]);
+        cursor = data.next_cursor && all.length < cap ? data.next_cursor : null;
+        return { hasMore: !!cursor };
+      } catch (_) { return { hasMore: false }; }
+    }).catch(function () { return { hasMore: false }; });
+  }
+
+  function loop() {
+    return doQuery().then(function (r) {
+      if (r.hasMore && all.length < cap) return loop();
+      return all;
+    });
+  }
+  return loop();
+}
+
 function getWordTitlesWhereSynonymsContain(notionToken, databaseId, word, baseForm) {
   var wordTrim = (word && typeof word === "string") ? word.trim() : "";
   var baseTrim = (baseForm && typeof baseForm === "string") ? baseForm.trim() : "";
@@ -480,9 +658,65 @@ function saveToNotionApi(payload, notionToken, databaseId) {
   return queryNotionPagesByWords(notionToken, databaseId, synonyms).then(createPage);
 }
 
-browser.runtime.onMessage.addListener(function (message, sender) {
+var WRITING_SUPPORT_ACTIONS = {
+  writing_comment: "Give brief writing feedback (style, clarity, tone) for this excerpt. Be concise, 2–4 sentences.",
+  better_word: "Suggest a more precise or stronger word or phrase for the highlighted part. Reply with the suggested word/phrase and one short sentence explaining why it works better.",
+  suggest_word: "The user may mark where they need a word with []. Suggest a word or short phrase to replace [] so it fits naturally in the context. Reply with the suggestion and a brief reason.",
+  lookup_chinese: "Look up Chinese or similar senses in your Notion vocabulary and return matching English word(s).",
+};
+
+var WRITING_VOCAB_PROMPT_MAX = 500;
+
+function writingSupportWithDeepSeek(text, action, vocabLines, apiKey) {
+  var promptSpec = WRITING_SUPPORT_ACTIONS[action] || WRITING_SUPPORT_ACTIONS.writing_comment;
+  var systemContent = "You are a fiction writing assistant. " + promptSpec + " Reply in plain text, no JSON.";
+  if (vocabLines && vocabLines.length > 0) {
+    systemContent += "\n\nThe writer has this vocabulary (word / translation / sense). When suggesting words, prefer or draw from this list when it fits:\n" + vocabLines.slice(0, WRITING_VOCAB_PROMPT_MAX).map(function (e) {
+      return (e.word || "") + " | " + (e.translation || "") + (e.sense ? " | " + e.sense : "");
+    }).join("\n");
+  }
+  var body = JSON.stringify({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: systemContent },
+      { role: "user", content: text },
+    ],
+    max_tokens: 512,
+    temperature: 0.3,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: DEEPSEEK_URL,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey,
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res) throw new Error("No response from native handler.");
+    if (res.error) throw new Error(res.error);
+    var status = res.status;
+    var responseText = res.body || "";
+    if (status < 200 || status >= 300) {
+      if (status === 401) throw new Error("Invalid DeepSeek API key. Check extension Options.");
+      if (status === 429) throw new Error("Rate limit exceeded. Try again in a moment.");
+      throw new Error(responseText || "Request failed (" + status + ")");
+    }
+    var data = {};
+    try { data = JSON.parse(responseText); } catch (_) {}
+    var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    return (content && typeof content === "string") ? content.trim() : "";
+  });
+}
+
+browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  function reply(value) {
+    try { sendResponse(value); } catch (_) {}
+  }
+
   if (message.type === "translate") {
-    return getStoredOptions()
+    getStoredOptions()
       .then(function (opts) {
         if (!opts.deepseekApiKey || !opts.deepseekApiKey.trim()) {
           throw new Error("Set your DeepSeek API key in extension options.");
@@ -495,41 +729,65 @@ browser.runtime.onMessage.addListener(function (message, sender) {
         if (typeof result.translation === "string" && result.translation.trim()) return result;
         throw new Error("DeepSeek returned an empty translation. Try again.");
       })
+      .then(reply)
       .catch(function (err) {
-        return { error: err && err.message ? err.message : "Translation failed" };
+        reply({ error: err && err.message ? err.message : "Translation failed" });
       });
+    return true;
   }
 
   if (message.type === "getConfig") {
-    return getStoredOptions()
+    getStoredOptions()
       .then(function (opts) {
         var max = parseInt(opts.maxSelectionLength, 10);
         return { maxSelectionLength: (isNaN(max) || max < 20 || max > 500) ? 120 : max };
       })
       .catch(function () {
         return { maxSelectionLength: 120 };
-      });
+      })
+      .then(reply);
+    return true;
   }
 
   if (message.type === "checkNotionExisting") {
     var word = message.word;
     var baseForm = message.baseForm;
-    return getStoredOptions()
+    getStoredOptions()
       .then(function (opts) {
         if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
           return { found: false };
         }
         return checkNotionForExistingWordOrBaseForm(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm);
       })
-      .catch(function () { return { found: false }; });
+      .catch(function () { return { found: false }; })
+      .then(reply);
+    return true;
+  }
+
+  if (message.type === "getAlsoSynonymIn") {
+    var word = message.word;
+    var baseForm = message.baseForm;
+    getStoredOptions()
+      .then(function (opts) {
+        if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
+          return { alsoSynonymIn: [] };
+        }
+        return getWordTitlesWhereSynonymsContain(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm).then(function (wordTitles) {
+          return { alsoSynonymIn: wordTitles || [] };
+        });
+      })
+      .catch(function () { return { alsoSynonymIn: [] }; })
+      .then(reply);
+    return true;
   }
 
   if (message.type === "saveToNotion") {
     var payload = message.payload;
     if (!payload) {
-      return Promise.resolve({ error: "Missing payload" });
+      reply({ error: "Missing payload" });
+      return false;
     }
-    return getStoredOptions()
+    getStoredOptions()
       .then(function (opts) {
         if (!opts.notionToken || !opts.notionToken.trim()) {
           throw new Error("Set your Notion integration token in extension options.");
@@ -579,16 +837,65 @@ browser.runtime.onMessage.addListener(function (message, sender) {
       .then(function (result) {
         return result || { ok: true };
       })
+      .then(reply)
       .catch(function (err) {
         var msg = err && err.message ? err.message : "Save failed";
         if (/load failed|failed to fetch|networkerror|network error/i.test(msg)) {
           msg = "Notion network error: " + msg + ". Check that api.notion.com is reachable from your network, and verify API secret + Database ID in Options.";
         }
-        return { error: msg };
+        reply({ error: msg });
       });
+    return true;
   }
 
-  return Promise.resolve({ error: "Unknown message type" });
+  if (message.type === "writingSupport") {
+    var text = (message.text && typeof message.text === "string") ? message.text.trim() : "";
+    var action = (message.action && WRITING_SUPPORT_ACTIONS[message.action]) ? message.action : "writing_comment";
+    if (!text) {
+      reply({ error: "No text provided." });
+      return false;
+    }
+    if (action === "lookup_chinese") {
+      getStoredOptions()
+        .then(function (opts) {
+          var token = (opts.notionToken && opts.notionToken.trim()) ? opts.notionToken.trim() : "";
+          var dbId = (opts.notionDatabaseId && opts.notionDatabaseId.trim()) ? opts.notionDatabaseId.trim() : "";
+          if (!token || !dbId) throw new Error("Set your Notion API secret and Database ID in extension Options.");
+          return queryNotionPagesWhereTranslationContainsAny(token, dbId, text);
+        })
+        .then(function (entries) {
+          if (!entries || entries.length === 0) {
+            return { result: "No matching words in your Notion database." };
+          }
+          var lines = entries.map(function (e) {
+            var part = e.word + (e.translation ? " — " + e.translation : "");
+            return part + (e.sense ? " (" + e.sense + ")" : "");
+          });
+          return { result: lines.join("\n") };
+        })
+        .then(reply)
+        .catch(function (err) {
+          reply({ error: (err && err.message) ? err.message : "Lookup failed." });
+        });
+      return true;
+    }
+    getStoredOptions()
+      .then(function (opts) {
+        var apiKey = (opts.deepseekApiKey && opts.deepseekApiKey.trim()) ? opts.deepseekApiKey.trim() : "";
+        if (!apiKey) throw new Error("Set your DeepSeek API key in extension Options.");
+        return writingSupportWithDeepSeek(text, action, [], apiKey).then(function (result) {
+          return { result: result };
+        });
+      })
+      .then(reply)
+      .catch(function (err) {
+        reply({ error: (err && err.message) ? err.message : "Writing support failed." });
+      });
+    return true;
+  }
+
+  reply({ error: "Unknown message type" });
+  return false;
 });
 
 // On load: restore API key and Notion credentials from Keychain so they persist across restarts/reinstalls

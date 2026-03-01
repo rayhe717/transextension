@@ -108,12 +108,19 @@
           alreadyInNotionEl.textContent = "";
           alreadyInNotionEl.style.display = "none";
         }
-        browser.runtime.sendMessage({ type: "checkNotionExisting", word: text, baseForm: response.base_form || "" }).then(function (r) {
+        var existingPromise = browser.runtime.sendMessage({ type: "checkNotionExisting", word: text, baseForm: response.base_form || "" });
+        var synonymInPromise = browser.runtime.sendMessage({ type: "getAlsoSynonymIn", word: text, baseForm: response.base_form || "" });
+        Promise.allSettled([existingPromise, synonymInPromise]).then(function (results) {
+          var r = results[0].status === "fulfilled" ? results[0].value : null;
+          var r2 = results[1].status === "fulfilled" ? results[1].value : null;
           if (alreadyInNotionEl && r && r.found && r.value) {
             alreadyInNotionEl.textContent = "Already in Notion: " + r.value;
             alreadyInNotionEl.style.display = "block";
           }
-        }).catch(function () {});
+          if (r2 && r2.alsoSynonymIn && Array.isArray(r2.alsoSynonymIn) && r2.alsoSynonymIn.length > 0) {
+            showAlsoSynonymIn(r2.alsoSynonymIn);
+          }
+        });
       })
       .catch(function (err) {
         setBusy(false);
@@ -184,6 +191,71 @@
     }
     window.open("options.html", "_blank");
   });
+
+  var popupModeSwitch = document.getElementById("popupModeSwitch");
+  var popupPanelTranslate = document.getElementById("popupPanelTranslate");
+  var popupPanelWriting = document.getElementById("popupPanelWriting");
+  var popupWritingText = document.getElementById("popupWritingText");
+  var popupWritingResult = document.getElementById("popupWritingResult");
+  var popupPanelMode = "translate";
+
+  function setPopupMode(mode) {
+    popupPanelMode = mode;
+    if (popupPanelTranslate) popupPanelTranslate.style.display = mode === "translate" ? "" : "none";
+    if (popupPanelWriting) popupPanelWriting.style.display = mode === "writing" ? "" : "none";
+    if (popupModeSwitch) popupModeSwitch.textContent = mode === "translate" ? "Writing" : "Translate";
+  }
+
+  if (popupModeSwitch) {
+    popupModeSwitch.addEventListener("click", function () {
+      setPopupMode(popupPanelMode === "translate" ? "writing" : "translate");
+      browser.storage.local.set({ defaultPanelMode: popupPanelMode });
+    });
+    browser.storage.local.get("defaultPanelMode").then(function (o) {
+      var mode = (o.defaultPanelMode === "writing") ? "writing" : "translate";
+      setPopupMode(mode);
+      if (mode === "writing" && popupWritingText) popupWritingText.focus();
+      else if (inputEl) inputEl.focus();
+    });
+  } else if (inputEl) {
+    inputEl.focus();
+  }
+
+  var writingBtns = document.querySelectorAll(".popup-btn-writing");
+  for (var i = 0; i < writingBtns.length; i++) {
+    (function (btn) {
+      btn.addEventListener("click", function () {
+        var text = (popupWritingText && popupWritingText.value) ? popupWritingText.value.trim() : "";
+        if (!text) {
+          if (popupWritingResult) { popupWritingResult.textContent = "Enter or paste some text first."; popupWritingResult.className = "popup-writing-result error"; }
+          return;
+        }
+        var action = btn.getAttribute("data-action") || "writing_comment";
+        if (popupWritingResult) {
+          popupWritingResult.textContent = "Loading…";
+          popupWritingResult.className = "popup-writing-result";
+        }
+        browser.runtime.sendMessage({ type: "writingSupport", text: text, action: action })
+          .then(function (r) {
+            if (!popupWritingResult) return;
+            if (r && r.error) {
+              popupWritingResult.textContent = r.error;
+              popupWritingResult.className = "popup-writing-result error";
+            } else {
+              popupWritingResult.textContent = (r && r.result) ? r.result : "";
+              popupWritingResult.classList.remove("error");
+            }
+          })
+          .catch(function (e) {
+            if (popupWritingResult) {
+              popupWritingResult.textContent = (e && e.message) ? e.message : "Request failed.";
+              popupWritingResult.className = "popup-writing-result error";
+            }
+          });
+      });
+    })(writingBtns[i]);
+  }
+
   inputEl.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
@@ -191,6 +263,4 @@
       else save();
     }
   });
-
-  inputEl.focus();
 })();
