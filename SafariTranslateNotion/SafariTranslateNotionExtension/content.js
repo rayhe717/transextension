@@ -572,7 +572,7 @@
           original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation),
           loading: false, error: null, saving: false, saveSuccess: true, saveError: null,
           meanings: currentPayload && currentPayload.meanings || undefined,
-          alsoSynonymIn: (response && response.alsoSynonymIn) || undefined,
+          alsoSynonymIn: undefined,
         });
         flushTooltipPaint();
         setTimeout(removeTooltip, 1500);
