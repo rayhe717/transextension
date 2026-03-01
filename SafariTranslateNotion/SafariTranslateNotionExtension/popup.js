@@ -7,8 +7,20 @@
   const meaningsListEl = document.getElementById("meaningsList");
   const statusEl = document.getElementById("statusText");
   const alreadyInNotionEl = document.getElementById("alreadyInNotionEl");
+  const alsoSynonymInEl = document.getElementById("alsoSynonymInEl");
 
   let currentPayload = null;
+
+  function showAlsoSynonymIn(wordTitles) {
+    if (!alsoSynonymInEl) return;
+    if (!wordTitles || wordTitles.length === 0) {
+      alsoSynonymInEl.textContent = "";
+      alsoSynonymInEl.style.display = "none";
+      return;
+    }
+    alsoSynonymInEl.textContent = "Also appears as synonym in: " + wordTitles.join(", ");
+    alsoSynonymInEl.style.display = "block";
+  }
 
   function setStatus(message, type) {
     statusEl.textContent = message || "";
@@ -34,6 +46,7 @@
     setStatus("Translating...");
     translationEl.textContent = "";
     if (alreadyInNotionEl) { alreadyInNotionEl.textContent = ""; alreadyInNotionEl.style.display = "none"; }
+    if (alsoSynonymInEl) { alsoSynonymInEl.textContent = ""; alsoSynonymInEl.style.display = "none"; }
     currentPayload = null;
 
     browser.runtime.sendMessage({ type: "translate", text: text })
@@ -152,6 +165,8 @@
         }
         var count = (response && response.count) ? response.count : 1;
         setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Notion.", "success");
+        var alsoIn = response && response.alsoSynonymIn && response.alsoSynonymIn.length > 0 ? response.alsoSynonymIn : null;
+        showAlsoSynonymIn(alsoIn);
       })
       .catch(function (err) {
         translateBtn.disabled = false;

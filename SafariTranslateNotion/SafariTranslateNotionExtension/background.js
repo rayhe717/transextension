@@ -247,7 +247,11 @@ function checkNotionForExistingWordOrBaseForm(notionToken, databaseId, word, bas
   if (clauses.length === 0) return Promise.resolve({ found: false });
   var filter = clauses.length === 1 ? clauses[0] : { or: clauses };
   var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
-  var body = JSON.stringify({ filter: filter, page_size: 1 });
+  var body = JSON.stringify({
+    filter: filter,
+    page_size: 1,
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+  });
   return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
     type: "apiRequest",
     url: url,
@@ -284,7 +288,10 @@ function queryNotionPagesByWords(notionToken, databaseId, words) {
     ? { property: "Word", title: { equals: list[0] } }
     : { or: list.map(function (w) { return { property: "Word", title: { equals: w } }; }) };
   var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
-  var body = JSON.stringify({ filter: filter });
+  var body = JSON.stringify({
+    filter: filter,
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+  });
   return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
     type: "apiRequest",
     url: url,
@@ -312,6 +319,57 @@ function queryNotionPagesByWords(notionToken, databaseId, words) {
       return map;
     } catch (_) { return {}; }
   }).catch(function () { return {}; });
+}
+
+function queryNotionPagesWhereSynonymsContain(notionToken, databaseId, word) {
+  var wordTrim = (word && typeof word === "string") ? word.trim() : "";
+  if (!wordTrim) return Promise.resolve([]);
+  var normalizedDbId = normalizeDatabaseId(databaseId);
+  if (!normalizedDbId || !notionToken) return Promise.resolve([]);
+  var url = NOTION_API_BASE + "/databases/" + normalizedDbId + "/query";
+  var body = JSON.stringify({
+    filter: { property: "Synonyms", rich_text: { contains: wordTrim } },
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+    page_size: 100,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: url,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + notionToken,
+      "Notion-Version": "2022-06-28",
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error || res.status < 200 || res.status >= 300) return [];
+    try {
+      var data = JSON.parse(res.body || "{}");
+      return data.results || [];
+    } catch (_) { return []; }
+  }).catch(function () { return []; });
+}
+
+function getWordTitlesWhereSynonymsContain(notionToken, databaseId, word, baseForm) {
+  var wordTrim = (word && typeof word === "string") ? word.trim() : "";
+  var baseTrim = (baseForm && typeof baseForm === "string") ? baseForm.trim() : "";
+  var titles = {};
+  function collect(pages) {
+    for (var i = 0; i < (pages || []).length; i++) {
+      var p = pages[i];
+      var titleProp = p && p.properties && p.properties.Word;
+      var t = titleProp && titleProp.title && titleProp.title[0] ? titleProp.title[0].plain_text : "";
+      if (t) titles[t] = true;
+    }
+  }
+  var q1 = wordTrim ? queryNotionPagesWhereSynonymsContain(notionToken, databaseId, wordTrim) : Promise.resolve([]);
+  var q2 = (baseTrim && baseTrim !== wordTrim) ? queryNotionPagesWhereSynonymsContain(notionToken, databaseId, baseTrim) : Promise.resolve([]);
+  return Promise.all([q1, q2]).then(function (results) {
+    collect(results[0]);
+    collect(results[1]);
+    return Object.keys(titles);
+  });
 }
 
 function buildSynonymsRichText(synonyms, synonymToPageId) {
@@ -483,6 +541,13 @@ browser.runtime.onMessage.addListener(function (message, sender) {
         var token = opts.notionToken.trim();
         var dbId = opts.notionDatabaseId.trim();
 
+        function addAlsoSynonymIn(result) {
+          return getWordTitlesWhereSynonymsContain(token, dbId, payload.original, payload.base_form || payload.original).then(function (wordTitles) {
+            result.alsoSynonymIn = wordTitles || [];
+            return result;
+          }).catch(function () { return result; });
+        }
+
         if (payload.meanings && Array.isArray(payload.meanings) && payload.meanings.length > 0) {
           var sensePromises = payload.meanings.map(function (m) {
             var senseContext = buildSenseContext(m, payload.context);
@@ -500,14 +565,14 @@ browser.runtime.onMessage.addListener(function (message, sender) {
             });
           });
           return Promise.all(sensePromises).then(function () {
-            return { ok: true, count: payload.meanings.length };
+            return addAlsoSynonymIn({ ok: true, count: payload.meanings.length });
           });
         }
 
         return callTaxonomy(payload.original, payload.context, apiKey).then(function (taxonomy) {
           payload.taxonomy = taxonomy;
           return saveToNotionApi(payload, token, dbId).then(function () {
-            return { ok: true, count: 1 };
+            return addAlsoSynonymIn({ ok: true, count: 1 });
           });
         });
       })

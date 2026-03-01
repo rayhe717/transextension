@@ -124,6 +124,16 @@ body {
   font-style: italic;
 }
 
+.popup-also-synonym {
+  display: none;
+  margin-top: 4px;
+  font-size: 10px;
+  padding: 4px 6px;
+  background-color: #fef08a;
+  color: #854d0e;
+  border-radius: 4px;
+}
+
 .btn-settings {
   width: 100%;
   margin-top: 3px;

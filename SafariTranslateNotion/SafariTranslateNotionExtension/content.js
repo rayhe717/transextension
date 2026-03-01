@@ -138,7 +138,7 @@
   }
 
   function renderTooltip(state) {
-    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings, alreadyInNotion } = state;
+    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings, alreadyInNotion, alsoSynonymIn } = state;
     const root = document.getElementById(TOOLTIP_ID);
     if (!root) return;
 
@@ -203,6 +203,16 @@
         alreadyEl.style.display = "none";
       }
     }
+    var alsoSynonymEl = root.querySelector(".stn-tooltip-also-synonym");
+    if (alsoSynonymEl) {
+      if (alsoSynonymIn && alsoSynonymIn.length > 0) {
+        alsoSynonymEl.textContent = "Also appears as synonym in: " + alsoSynonymIn.join(", ");
+        alsoSynonymEl.style.display = "block";
+      } else {
+        alsoSynonymEl.textContent = "";
+        alsoSynonymEl.style.display = "none";
+      }
+    }
     if (statusEl) {
       statusEl.textContent = saveSuccess ? "Saved." : saveError || (error || "");
       statusEl.className = "stn-tooltip-status" + (saveError || error ? " error" : "") + (saveSuccess ? " success" : "");
@@ -265,6 +275,7 @@
       '<div class="stn-tooltip-translation stn-tooltip-loading">Translating…</div>' +
       '<div class="stn-tooltip-meanings"></div>' +
       '<div class="stn-tooltip-already"></div>' +
+      '<div class="stn-tooltip-also-synonym"></div>' +
       '<div class="stn-tooltip-actions">' +
       '<button type="button" class="stn-tooltip-btn-save" disabled>Save</button>' +
       '<span class="stn-tooltip-status"></span>' +
@@ -445,6 +456,7 @@
           original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation),
           loading: false, error: null, saving: false, saveSuccess: true, saveError: null,
           meanings: currentPayload && currentPayload.meanings || undefined,
+          alsoSynonymIn: (response && response.alsoSynonymIn) || undefined,
         });
         flushTooltipPaint();
         setTimeout(removeTooltip, 1500);

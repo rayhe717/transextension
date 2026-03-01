@@ -102,6 +102,16 @@
   font-style: italic;
 }
 
+.stn-tooltip-also-synonym {
+  display: none;
+  margin-top: 5px;
+  font-size: 10px;
+  padding: 4px 6px;
+  background-color: #fef08a;
+  color: #854d0e;
+  border-radius: 4px;
+}
+
 .stn-tooltip-root[data-save-success="true"] .stn-tooltip-meaning-row {
   color: #333;
   opacity: 1;
