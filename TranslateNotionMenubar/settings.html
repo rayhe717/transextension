@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings — Translate & Notion</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    .settings-body { padding: 20px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 12px; }
+    .field input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; }
+    .field input:focus { outline: none; border-color: #a8c9db; }
+    .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    .btn-save { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="popup-root">
+    <header class="popup-header">
+      <h1 class="popup-title">Settings</h1>
+    </header>
+    <div class="settings-body">
+      <div class="field">
+        <label for="deepseekApiKey">DeepSeek API key</label>
+        <input type="password" id="deepseekApiKey" placeholder="sk-…" autocomplete="off">
+        <div class="hint">From <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a></div>
+      </div>
+      <div class="field">
+        <label for="notionToken">Notion integration token</label>
+        <input type="password" id="notionToken" placeholder="secret_… or ntn_…" autocomplete="off">
+        <div class="hint">Notion → Settings → Integrations → Create / copy secret. Accepts <code>secret_</code> or <code>ntn_</code> format.</div>
+      </div>
+      <div class="field">
+        <label for="notionDatabaseId">Notion database ID</label>
+        <input type="text" id="notionDatabaseId" placeholder="Database ID from URL">
+        <div class="hint">Open database in Notion, copy ID from the URL (with or without hyphens)</div>
+      </div>
+      <div class="field">
+        <label for="targetLanguage">Target language</label>
+        <input type="text" id="targetLanguage" placeholder="e.g. Simplified Chinese">
+      </div>
+      <button type="button" id="btnSave" class="btn btn-primary btn-save">Save</button>
+      <div id="saveStatus" class="save-status" style="margin-top: 12px;"></div>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+</body>
+</html>

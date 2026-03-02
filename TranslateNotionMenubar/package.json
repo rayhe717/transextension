@@ -1,0 +1,26 @@
+{
+  "name": "translate-notion-menubar",
+  "version": "1.0.0",
+  "description": "Clipboard-based menubar app: translate with DeepSeek, save to Notion.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.translatenotion.menubar",
+    "productName": "Translate & Notion",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"]
+    }
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  }
+}

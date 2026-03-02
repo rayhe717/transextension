@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Translate & Notion</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-root">
+    <header class="popup-header">
+      <div class="popup-mode-tabs">
+        <button type="button" id="btnModeTranslate" class="popup-mode-tab active">Translate</button>
+        <button type="button" id="btnModeWriting" class="popup-mode-tab">Writing</button>
+      </div>
+    </header>
+    <div class="popup-body">
+      <div id="popupPanelTranslate" class="popup-panel">
+      <label class="label">Clipboard / text to translate</label>
+      <textarea id="inputText" class="input" rows="3" placeholder="Paste or use clipboard…"></textarea>
+      <div class="actions">
+        <button type="button" id="btnTranslate" class="btn btn-primary">Translate</button>
+      </div>
+      <div id="translationArea" class="translation-area" style="display: none;">
+        <div id="meaningsRow" class="meanings-row" style="display: none;">
+          <label class="label">Save which meaning?</label>
+          <div id="meaningsList" class="meanings-list"></div>
+        </div>
+        <p id="alreadyInNotionEl" class="popup-already"></p>
+        <p id="alsoSynonymInEl" class="popup-also-synonym"></p>
+        <div class="actions">
+          <button type="button" id="btnSave" class="btn btn-primary">Save to Notion</button>
+        </div>
+        <div id="saveStatus" class="save-status"></div>
+      </div>
+      <div id="errorArea" class="error-area" style="display: none;"></div>
+      </div>
+      <div id="popupPanelWriting" class="popup-panel" style="display: none;">
+        <label class="label">Text</label>
+        <textarea id="popupWritingText" class="input" rows="4" maxlength="500" placeholder="Paste a sentence or paragraph…"></textarea>
+        <div class="popup-writing-actions">
+          <button type="button" class="popup-btn-writing" data-action="writing_comment">Comment</button>
+          <button type="button" class="popup-btn-writing" data-action="better_word">Better word</button>
+          <button type="button" class="popup-btn-writing" data-action="suggest_word">Suggest word</button>
+          <button type="button" class="popup-btn-writing" data-action="lookup_chinese">Look up</button>
+        </div>
+        <div id="popupWritingResult" class="popup-writing-result"></div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
