@@ -146,7 +146,7 @@
   }
 
   function renderTooltip(state) {
-    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings, alreadyInNotion, alsoSynonymIn } = state;
+    const { original, translation, loading, error, saving, saveSuccess, saveError, meanings, alreadyInNotion, alsoSynonymIn, timedOut } = state;
     const root = document.getElementById(TOOLTIP_ID);
     if (!root) return;
 
@@ -226,9 +226,12 @@
       statusEl.className = "stn-tooltip-status" + (saveError || error ? " error" : "") + (saveSuccess ? " success" : "");
     }
     if (saveBtn) {
-      saveBtn.textContent = saving ? "Saving…" : "Save";
+      saveBtn.textContent = saving ? "Saving…" : (timedOut && error ? "Retry" : "Save");
+      saveBtn.setAttribute("data-retry", timedOut && error ? "true" : "false");
       if (loading || saving) {
         saveBtn.disabled = true;
+      } else if (timedOut && error) {
+        saveBtn.disabled = false;
       } else if (meanings && meanings.length > 0) {
         saveBtn.disabled = false;
         updateSaveButtonState();
@@ -333,22 +336,23 @@
         setTooltipMode(tooltipMode === "translate" ? "writing" : "translate");
         browser.storage.local.set({ defaultPanelMode: tooltipMode });
         if (tooltipMode === "translate" && currentPayload && currentPayload.original && !currentPayload.translation) {
-          responseReceived = false;
-          timeoutId = setTimeout(function () {
-            if (responseReceived) return;
-            if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== thisOriginal) return;
-            responseReceived = true;
-            renderTooltip({
-              original: thisOriginal,
-              translation: null,
-              loading: false,
-              error: "Translation timed out. In Options, check your DeepSeek API key and internet connection.",
-              saving: false,
-              saveSuccess: false,
-              saveError: null,
-            });
-            if (currentPayload && currentPayload.original === thisOriginal) currentPayload.translation = null;
-          }, 55000);
+            responseReceived = false;
+            timeoutId = setTimeout(function () {
+              if (responseReceived) return;
+              if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== thisOriginal) return;
+              responseReceived = true;
+              renderTooltip({
+                original: thisOriginal,
+                translation: null,
+                loading: false,
+                error: "Translation timed out. In Options, check your DeepSeek API key and internet connection.",
+                saving: false,
+                saveSuccess: false,
+                saveError: null,
+                timedOut: true,
+              });
+              if (currentPayload && currentPayload.original === thisOriginal) currentPayload.translation = null;
+            }, 90000);
           renderTooltip({
             original: thisOriginal,
             translation: null,
@@ -370,6 +374,22 @@
     }
 
     saveBtn.addEventListener("click", function () {
+      if (saveBtn.getAttribute("data-retry") === "true") {
+        var text = currentPayload && currentPayload.original ? currentPayload.original : "";
+        if (!text) return;
+        responseReceived = false;
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(function () {
+          if (responseReceived) return;
+          if (!tooltipEl || !tooltipEl.parentNode || !currentPayload || currentPayload.original !== text) return;
+          responseReceived = true;
+          renderTooltip({ original: text, translation: null, loading: false, error: "Translation timed out. In Options, check your DeepSeek API key and internet connection.", saving: false, saveSuccess: false, saveError: null, timedOut: true });
+          if (currentPayload && currentPayload.original === text) currentPayload.translation = null;
+        }, 90000);
+        renderTooltip({ original: text, translation: null, loading: true, error: null, saving: false, saveSuccess: false, saveError: null });
+        browser.runtime.sendMessage({ type: "translate", text: text }).then(handleTranslateResponse).catch(handleTranslateError);
+        return;
+      }
       var payload = buildSavePayload();
       if (!payload) return;
       saveToNotion(payload);
@@ -463,9 +483,10 @@
         saving: false,
         saveSuccess: false,
         saveError: null,
+        timedOut: true,
       });
       if (currentPayload && currentPayload.original === thisOriginal) currentPayload.translation = null;
-    }, 55000);
+    }, 90000);
 
     function handleTranslateResponse(response) {
       if (responseReceived) return;
