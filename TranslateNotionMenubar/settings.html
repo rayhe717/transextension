@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Settings — Translate & Notion</title>
+  <title>Settings — Translate</title>
   <link rel="stylesheet" href="popup.css">
   <style>
     .settings-body { padding: 20px; }
@@ -22,6 +22,16 @@
     </header>
     <div class="settings-body">
       <div class="field">
+        <label for="obsidianVaultPath">Obsidian vault path</label>
+        <input type="text" id="obsidianVaultPath" placeholder="/path/to/your/vault">
+        <div class="hint">Example: <code>/path/to/your/vault</code></div>
+      </div>
+      <div class="field">
+        <label for="obsidianVocabFolder">Vocab folder (inside vault)</label>
+        <input type="text" id="obsidianVocabFolder" placeholder="vocab">
+        <div class="hint">Your vocab files will be stored as <code>&lt;vault&gt;/&lt;folder&gt;/&lt;word&gt;.md</code>. One file per word.</div>
+      </div>
+      <div class="field">
         <label for="deepseekApiKey">DeepSeek API key</label>
         <input type="password" id="deepseekApiKey" placeholder="sk-…" autocomplete="off">
         <div class="hint">From <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a></div>
@@ -29,12 +39,12 @@
       <div class="field">
         <label for="notionToken">Notion integration token</label>
         <input type="password" id="notionToken" placeholder="secret_… or ntn_…" autocomplete="off">
-        <div class="hint">Notion → Settings → Integrations → Create / copy secret. Accepts <code>secret_</code> or <code>ntn_</code> format.</div>
+        <div class="hint">Optional (only used for legacy Notion save / some lookups). Accepts <code>secret_</code> or <code>ntn_</code>.</div>
       </div>
       <div class="field">
         <label for="notionDatabaseId">Notion database ID</label>
         <input type="text" id="notionDatabaseId" placeholder="Database ID from URL">
-        <div class="hint">Open database in Notion, copy ID from the URL (with or without hyphens)</div>
+        <div class="hint">Optional.</div>
       </div>
       <div class="field">
         <label for="targetLanguage">Target language</label>

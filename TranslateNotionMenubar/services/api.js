@@ -168,6 +168,38 @@ async function callTaxonomy(term, apiKey) {
   }
 }
 
+async function generateExampleSentence(word, apiKey) {
+  if (!word || typeof word !== "string" || !word.trim() || !apiKey) return null;
+  const term = word.trim().slice(0, 200);
+  const userContent = "Write exactly one academic English sentence that uses the word \"" + term + "\" naturally. Length: 20–35 words. Output only the sentence, no quotes or numbering.";
+  const body = JSON.stringify({
+    model: "deepseek-chat",
+    messages: [
+      { role: "user", content: userContent },
+    ],
+    max_tokens: 120,
+    temperature: 0.3,
+  });
+  try {
+    const res = await fetch(DEEPSEEK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + apiKey,
+      },
+      body,
+    });
+    const text = await res.text();
+    if (res.status < 200 || res.status >= 300) return null;
+    const data = JSON.parse(text);
+    const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    const sentence = (typeof content === "string" ? content.trim() : "").replace(/^["']|["']$/g, "");
+    return sentence || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function normalizeDatabaseId(id) {
   if (!id || typeof id !== "string") return "";
   return id.trim().replace(/-/g, "");
@@ -614,8 +646,11 @@ module.exports = {
   translateWithDeepSeek,
   saveToNotionApi,
   callTaxonomy,
+  generateExampleSentence,
   checkNotionExisting,
   getWordTitlesWhereSynonymsContain,
   writingSupport,
+  writingSupportWithDeepSeek,
+  getChineseToEnglishSuggestions,
   DEFAULT_TARGET_LANG,
 };

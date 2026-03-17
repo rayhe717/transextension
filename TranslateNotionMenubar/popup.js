@@ -45,10 +45,10 @@
       result.meanings.forEach((m, i) => {
         const label = document.createElement("label");
         const input = document.createElement("input");
-        input.type = "radio";
+        input.type = "checkbox";
         input.name = "meaning";
         input.value = String(i);
-        input.checked = i === 0;
+        input.checked = true;
         label.appendChild(input);
         label.appendChild(document.createTextNode(" " + (m.translation || "") + (m.sense ? " (" + m.sense + ")" : "")));
         meaningsList.appendChild(label);
@@ -57,21 +57,6 @@
       meaningsRow.style.display = "none";
     }
     saveStatus.textContent = "";
-
-    const word = inputText.value.trim();
-    const baseForm = result.base_form || word;
-    if (word && window.electronAPI.checkNotionStatus) {
-      window.electronAPI.checkNotionStatus({ word, baseForm }).then((status) => {
-        if (alreadyInNotionEl && status.alreadyInNotion) {
-          alreadyInNotionEl.textContent = "Already in Notion: " + status.alreadyInNotion;
-          alreadyInNotionEl.style.display = "block";
-        }
-        if (alsoSynonymInEl && status.alsoSynonymIn && status.alsoSynonymIn.length > 0) {
-          alsoSynonymInEl.textContent = "Also appears as synonym in: " + status.alsoSynonymIn.join(", ");
-          alsoSynonymInEl.style.display = "block";
-        }
-      }).catch(() => {});
-    }
   }
 
   async function pasteClipboard() {
@@ -102,51 +87,62 @@
     }
   }
 
-  function getSelectedMeaning() {
+  function getSelectedMeanings() {
     if (!lastPayload) return null;
     if (lastPayload.meanings && lastPayload.meanings.length > 0) {
-      const radio = document.querySelector('input[name="meaning"]:checked');
-      const idx = radio ? parseInt(radio.value, 10) : 0;
-      const m = lastPayload.meanings[idx];
-      if (m) {
-        return {
-          original: lastPayload.original || inputText.value.trim(),
-          base_form: lastPayload.base_form || lastPayload.original || inputText.value.trim(),
-          translation: m.translation,
-          sense: m.sense,
-          synonyms: m.synonyms || [],
-        };
-      }
+      const checked = Array.from(document.querySelectorAll('input[name="meaning"]:checked')).map((el) => parseInt(el.value, 10));
+      const indices = checked.length > 0 ? checked : lastPayload.meanings.map((_, i) => i);
+      const meanings = indices
+        .map((idx) => lastPayload.meanings[idx])
+        .filter(Boolean)
+        .map((m) => ({
+          translation: m.translation || "",
+          sense: m.sense || "",
+          synonyms: Array.isArray(m.synonyms) ? m.synonyms : [],
+        }));
+      if (meanings.length === 0) return null;
+      return {
+        original: lastPayload.original || inputText.value.trim(),
+        base_form: lastPayload.base_form || lastPayload.original || inputText.value.trim(),
+        meanings,
+      };
     }
     return {
       original: lastPayload.original || inputText.value.trim(),
       base_form: lastPayload.base_form || lastPayload.original || inputText.value.trim(),
-      translation: lastPayload.translation || "",
-      sense: "",
-      synonyms: lastPayload.synonyms || [],
+      meanings: [{
+        translation: lastPayload.translation || "",
+        sense: "",
+        synonyms: lastPayload.synonyms || [],
+      }],
     };
   }
 
+  const exampleSentenceEl = document.getElementById("exampleSentence");
+  const notesFieldEl = document.getElementById("notesField");
+
   async function save() {
-    const payload = getSelectedMeaning();
+    const payload = getSelectedMeanings();
     if (!payload) {
-      saveStatus.textContent = "Translate first.";
+      saveStatus.textContent = "Translate first or select at least one meaning.";
       saveStatus.classList.add("error");
       return;
     }
+    payload.example = (exampleSentenceEl && exampleSentenceEl.value) ? exampleSentenceEl.value.trim() : "";
+    payload.notes = (notesFieldEl && notesFieldEl.value) ? notesFieldEl.value.trim() : "";
     btnSave.disabled = true;
     saveStatus.textContent = "Saving…";
     saveStatus.classList.remove("error");
     try {
-      await window.electronAPI.saveToNotion(payload);
-      saveStatus.textContent = "Saved to Notion.";
+      await window.electronAPI.saveToVault(payload);
+      saveStatus.textContent = "Saved to vault.";
       saveStatus.classList.remove("error");
       showError("");
       if (alreadyInNotionEl) { alreadyInNotionEl.textContent = ""; alreadyInNotionEl.style.display = "none"; }
       if (alsoSynonymInEl) { alsoSynonymInEl.textContent = ""; alsoSynonymInEl.style.display = "none"; }
     } catch (e) {
       let msg = (e && e.message) ? e.message : "Save failed.";
-      msg = msg.replace(/^Error invoking remote method 'saveToNotion': Error: /, "");
+      msg = msg.replace(/^Error invoking remote method 'saveToVault': Error: /, "");
       saveStatus.textContent = "Save failed.";
       saveStatus.classList.add("error");
       showError(msg);

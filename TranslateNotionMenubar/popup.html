@@ -23,13 +23,21 @@
       </div>
       <div id="translationArea" class="translation-area" style="display: none;">
         <div id="meaningsRow" class="meanings-row" style="display: none;">
-          <label class="label">Save which meaning?</label>
+          <label class="label">Save which meanings? (multiple → one file)</label>
           <div id="meaningsList" class="meanings-list"></div>
         </div>
         <p id="alreadyInNotionEl" class="popup-already"></p>
         <p id="alsoSynonymInEl" class="popup-also-synonym"></p>
+        <details class="popup-details">
+          <summary class="popup-details-summary">Example sentence</summary>
+          <textarea id="exampleSentence" class="input popup-details-input" rows="2" placeholder="Paste a full sentence or leave blank to auto-generate one (academic style)"></textarea>
+        </details>
+        <details class="popup-details">
+          <summary class="popup-details-summary">Notes</summary>
+          <textarea id="notesField" class="input popup-details-input" rows="2" placeholder="Optional notes about this word"></textarea>
+        </details>
         <div class="actions">
-          <button type="button" id="btnSave" class="btn btn-primary">Save to Notion</button>
+          <button type="button" id="btnSave" class="btn btn-primary">Save to Vault</button>
         </div>
         <div id="saveStatus" class="save-status"></div>
       </div>
