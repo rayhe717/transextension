@@ -38,6 +38,10 @@
     showError("");
     if (alreadyInNotionEl) { alreadyInNotionEl.textContent = ""; alreadyInNotionEl.style.display = "none"; }
     if (alsoSynonymInEl) { alsoSynonymInEl.textContent = ""; alsoSynonymInEl.style.display = "none"; }
+    const exampleSentenceEl = document.getElementById("exampleSentence");
+    const notesFieldEl = document.getElementById("notesField");
+    if (exampleSentenceEl) exampleSentenceEl.value = "";
+    if (notesFieldEl) notesFieldEl.value = "";
 
     if (result.meanings && result.meanings.length > 0) {
       meaningsRow.style.display = "block";
