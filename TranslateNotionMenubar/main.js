@@ -121,10 +121,10 @@ function buildVocabBankDataview(vocabFolderRel) {
     "# Vocab",
     "",
     "```dataview",
-    "TABLE file.link AS \"Word\", join(choice(length(translations) > 0, translations, array(translation)), \", \") AS \"Translation\"",
+    "TABLE link(file.path, word) AS \"Word\", join(choice(length(translations) > 0, translations, array(translation)), \", \") AS \"Translation\", main_category AS \"Cat\", join(choice(length(subcategory) > 0, subcategory, array(\"\")), \", \") AS \"Subcat\", strength_level AS \"Level\"",
     `FROM "${folder}"`,
     "WHERE !startswith(file.name, \"_\")",
-    "SORT file.name ASC",
+    "SORT word ASC",
     "```",
     "",
   ].join("\n");

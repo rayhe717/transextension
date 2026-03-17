@@ -1,0 +1,23 @@
+/*
+  Vocab Bank: style Cat, Subcat, Level columns like Notion labels (pills).
+  Copy this file to your Obsidian vault:
+    .obsidian/snippets/vocab-table-labels.css
+  Then enable it: Settings → Appearance → CSS snippets → turn on "vocab-table-labels".
+*/
+.dataview.table-view-table th:nth-child(3),
+.dataview.table-view-table th:nth-child(4),
+.dataview.table-view-table th:nth-child(5),
+.dataview.table-view-table td:nth-child(3),
+.dataview.table-view-table td:nth-child(4),
+.dataview.table-view-table td:nth-child(5) {
+  background: rgba(55, 53, 47, 0.06);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-weight: 500;
+}
+.dataview.table-view-table th:nth-child(3),
+.dataview.table-view-table th:nth-child(4),
+.dataview.table-view-table th:nth-child(5) {
+  font-weight: 600;
+  background: rgba(55, 53, 47, 0.1);
+}
