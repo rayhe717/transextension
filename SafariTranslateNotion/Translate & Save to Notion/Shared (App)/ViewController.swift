@@ -104,12 +104,15 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
 
     private func writeSharedVaultPermission(bookmarkData: Data, vaultPath: String) {
         // Store in App Group so the extension can read it.
-        if let defaults = UserDefaults(suiteName: vaultAppGroupId) {
-            defaults.set(bookmarkData, forKey: "vaultBookmarkData")
-            defaults.set(bookmarkData.base64EncodedString(), forKey: "vaultBookmark") // legacy
-            defaults.set(vaultPath, forKey: "obsidianVaultPath")
-            defaults.synchronize()
+        guard let defaults = UserDefaults(suiteName: vaultAppGroupId) else {
+            // App Group not configured/enabled in signing; extension won't be able to read vault permission.
+            webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + jsString("App Group is not available. In Xcode, enable App Groups for both the macOS app and macOS extension, then choose the vault again.") + ";")
+            return
         }
+        defaults.set(bookmarkData, forKey: "vaultBookmarkData")
+        defaults.set(bookmarkData.base64EncodedString(), forKey: "vaultBookmark") // legacy
+        defaults.set(vaultPath, forKey: "obsidianVaultPath")
+        defaults.synchronize()
         // Also keep a copy in Keychain for debugging/back-compat.
         keychainWrite(service: optionsKeychainService, account: "vaultBookmark", value: bookmarkData.base64EncodedString())
         keychainWrite(service: optionsKeychainService, account: "obsidianVaultPath", value: vaultPath)

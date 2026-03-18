@@ -231,7 +231,11 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 return
             } catch {
                 let ns = error as NSError
-                respond(with: ["error": "Vault write failed (path fallback): \(ns.localizedDescription) (domain=\(ns.domain) code=\(ns.code))"], context: context)
+                if ns.domain == NSCocoaErrorDomain && ns.code == 513 {
+                    respond(with: ["error": "Vault write failed: permission denied. The Safari extension is sandboxed and cannot write to this folder without a valid vault permission. Open the container app → Choose Vault Folder… again. If it still fails, App Groups may not be enabled for your signing team."], context: context)
+                } else {
+                    respond(with: ["error": "Vault write failed (path fallback): \(ns.localizedDescription) (domain=\(ns.domain) code=\(ns.code))"], context: context)
+                }
                 return
             }
         }
