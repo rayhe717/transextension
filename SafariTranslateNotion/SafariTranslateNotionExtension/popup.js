@@ -8,6 +8,8 @@
   const statusEl = document.getElementById("statusText");
   const alreadyInNotionEl = document.getElementById("alreadyInNotionEl");
   const alsoSynonymInEl = document.getElementById("alsoSynonymInEl");
+  const exampleSentenceEl = document.getElementById("exampleSentence");
+  const notesFieldEl = document.getElementById("notesField");
 
   let currentPayload = null;
 
@@ -18,7 +20,7 @@
       alsoSynonymInEl.style.display = "none";
       return;
     }
-    alsoSynonymInEl.textContent = "Also appears as synonym in: " + wordTitles.join(", ");
+    alsoSynonymInEl.textContent = "Also appears in: " + wordTitles.join(", ");
     alsoSynonymInEl.style.display = "block";
   }
 
@@ -45,6 +47,8 @@
     setBusy(true);
     setStatus("Translating...");
     translationEl.textContent = "";
+    if (exampleSentenceEl) exampleSentenceEl.value = "";
+    if (notesFieldEl) notesFieldEl.value = "";
     if (alreadyInNotionEl) { alreadyInNotionEl.textContent = ""; alreadyInNotionEl.style.display = "none"; }
     if (alsoSynonymInEl) { alsoSynonymInEl.textContent = ""; alsoSynonymInEl.style.display = "none"; }
     currentPayload = null;
@@ -114,7 +118,7 @@
           var r = results[0].status === "fulfilled" ? results[0].value : null;
           var r2 = results[1].status === "fulfilled" ? results[1].value : null;
           if (alreadyInNotionEl && r && r.found && r.value) {
-            alreadyInNotionEl.textContent = "Already in Notion: " + r.value;
+            alreadyInNotionEl.textContent = "Already saved: " + r.value;
             alreadyInNotionEl.style.display = "block";
           }
           if (r2 && r2.alsoSynonymIn && Array.isArray(r2.alsoSynonymIn) && r2.alsoSynonymIn.length > 0) {
@@ -158,6 +162,8 @@
       if (!currentPayload) setStatus("Translate first before saving.", "error");
       return;
     }
+    payload.example = (exampleSentenceEl && exampleSentenceEl.value) ? exampleSentenceEl.value.trim() : "";
+    payload.notes = (notesFieldEl && notesFieldEl.value) ? notesFieldEl.value.trim() : "";
     translateBtn.disabled = true;
     saveBtn.disabled = true;
     setStatus("Saving...");

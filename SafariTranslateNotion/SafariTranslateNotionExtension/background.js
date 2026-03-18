@@ -37,9 +37,118 @@ function yamlString(value) {
   return "\"" + s + "\"";
 }
 
+var VAULT_TAXONOMY_SYSTEM_PROMPT =
+  "You are a taxonomy classifier for an academic reading vocabulary vault.\n" +
+  "Return JSON only with this schema:\n" +
+  "{\"main_category\":\"<short category>\",\"subcategory\":[\"<subcategory>\",...],\"strength_level\":\"<Strong Claim|Neutral|Caution|Hedge|Definition|Method|Evidence|Result|Limitation|Implication|Contrast|Example|Other>\"}\n\n" +
+  "Rules:\n" +
+  "- main_category: one short category label (e.g., Statistics, Methodology, Argumentation, Theory).\n" +
+  "- subcategory: 0-5 short tags.\n" +
+  "- strength_level: pick the best label from the list above; default Neutral.\n" +
+  "- If unsure: main_category=\"Other\", subcategory=[], strength_level=\"Neutral\".\n";
+
+function parseVaultTaxonomyResponse(text) {
+  var out = { mainCategory: "", subcategory: [], strengthLevel: "" };
+  if (!text || typeof text !== "string") return out;
+  var trimmed = text.trim();
+  try {
+    var jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+    var parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(trimmed);
+    if (parsed && typeof parsed.main_category === "string") out.mainCategory = parsed.main_category.trim();
+    if (parsed && typeof parsed.mainCategory === "string") out.mainCategory = parsed.mainCategory.trim();
+    if (Array.isArray(parsed && parsed.subcategory)) out.subcategory = parsed.subcategory.filter(function (s) { return typeof s === "string"; }).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20);
+    if (parsed && typeof parsed.strength_level === "string") out.strengthLevel = parsed.strength_level.trim();
+    if (parsed && typeof parsed.strengthLevel === "string") out.strengthLevel = parsed.strengthLevel.trim();
+  } catch (_) {}
+  if (!out.mainCategory) out.mainCategory = "Other";
+  if (!out.strengthLevel) out.strengthLevel = "Neutral";
+  return out;
+}
+
+function callVaultTaxonomy(term, apiKey) {
+  if (!term || typeof term !== "string" || !term.trim() || !apiKey) return Promise.resolve(parseVaultTaxonomyResponse(""));
+  var userContent = "Classify this term:\n\nTERM: \"" + term.trim().slice(0, 500) + "\"";
+  var body = JSON.stringify({
+    model: "deepseek-chat",
+    messages: [
+      { role: "system", content: VAULT_TAXONOMY_SYSTEM_PROMPT },
+      { role: "user", content: userContent },
+    ],
+    max_tokens: 256,
+    temperature: 0.2,
+    response_format: { type: "json_object" },
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: DEEPSEEK_URL,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey,
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error) return parseVaultTaxonomyResponse("");
+    var status = res.status;
+    var responseText = res.body || "";
+    if (status < 200 || status >= 300) return parseVaultTaxonomyResponse("");
+    try {
+      var data = JSON.parse(responseText);
+      var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      return parseVaultTaxonomyResponse(content || "");
+    } catch (_) {
+      return parseVaultTaxonomyResponse("");
+    }
+  }).catch(function () {
+    return parseVaultTaxonomyResponse("");
+  });
+}
+
+function generateExampleSentence(term, apiKey) {
+  if (!term || typeof term !== "string" || !term.trim() || !apiKey) return Promise.resolve(null);
+  var w = term.trim().slice(0, 200);
+  var userContent = "Write exactly one academic English sentence that uses the word \"" + w + "\" naturally. Length: 20–35 words. Output only the sentence, no quotes or numbering.";
+  var body = JSON.stringify({
+    model: "deepseek-chat",
+    messages: [{ role: "user", content: userContent }],
+    max_tokens: 120,
+    temperature: 0.3,
+  });
+  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+    type: "apiRequest",
+    url: DEEPSEEK_URL,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey,
+    },
+    body: body,
+  }).then(function (res) {
+    if (!res || res.error) return null;
+    var status = res.status;
+    var responseText = res.body || "";
+    if (status < 200 || status >= 300) return null;
+    try {
+      var data = JSON.parse(responseText);
+      var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      var sentence = (typeof content === "string" ? content.trim() : "").replace(/^[\"']|[\"']$/g, "");
+      return sentence || null;
+    } catch (_) {
+      return null;
+    }
+  }).catch(function () { return null; });
+}
+
 function buildWordMarkdownVault(payload) {
   var word = (payload.original || "").trim();
   var baseForm = (payload.base_form || payload.original || "").trim();
+  var example = (payload.example && typeof payload.example === "string") ? payload.example.trim() : "";
+  var notes = (payload.notes && typeof payload.notes === "string") ? payload.notes.trim() : "";
+  var exampleSource = (payload.example_source === "deepseek" || payload.example_source === "user") ? payload.example_source : "";
+  var tax = payload && payload.taxonomy ? payload.taxonomy : null;
+  var mainCategory = tax && typeof tax.mainCategory === "string" ? tax.mainCategory.trim() : "";
+  var strengthLevel = tax && typeof tax.strengthLevel === "string" ? tax.strengthLevel.trim() : "";
+  var subcategory = tax && Array.isArray(tax.subcategory) ? tax.subcategory.filter(function (s) { return typeof s === "string"; }).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20) : [];
   var meanings = Array.isArray(payload.meanings) && payload.meanings.length
     ? payload.meanings.map(function (m) {
         return {
@@ -59,10 +168,17 @@ function buildWordMarkdownVault(payload) {
     "---",
     "word: " + yamlString(word),
     "base_form: " + yamlString(baseForm),
+    "main_category: " + yamlString(mainCategory),
+    "subcategory:",
+    (subcategory.length ? subcategory.map(function (s) { return "  - " + yamlString(s); }).join("\n") : "  - \"\""),
+    "strength_level: " + yamlString(strengthLevel),
     "created: " + yamlString(now),
     "tags:",
     "  - vocab",
   ];
+  if (example) lines.push("example: " + yamlString(example));
+  if (exampleSource) lines.push("example_source: " + yamlString(exampleSource));
+  if (notes) lines.push("notes: " + yamlString(notes));
 
   if (meanings.length <= 1) {
     var m0 = meanings[0] || { translation: "", sense: "", synonyms: [] };
@@ -98,6 +214,12 @@ function buildWordMarkdownVault(payload) {
     lines.push("- **Synonyms**: " + (m.synonyms && m.synonyms.length ? m.synonyms.map(function (s) { return "[[" + s + "]]"; }).join(", ") : "—"));
     lines.push("");
   });
+  if (example) {
+    lines.push("## Example", "", example, "");
+  }
+  if (notes) {
+    lines.push("## Notes", "", notes, "");
+  }
   lines.push("");
   return lines.join("\n");
 }
@@ -975,15 +1097,40 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       .then(function (opts) {
         var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
         if (!folder) folder = "vocab";
+        var apiKey = (opts.deepseekApiKey && opts.deepseekApiKey.trim()) ? opts.deepseekApiKey.trim() : "";
         var word = (payload.original || "").trim();
         var filename = sanitizeFilename(word);
         if (!filename) throw new Error("Word is empty. Translate first.");
-        var md = buildWordMarkdownVault(payload);
-        return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
-          type: "vaultWrite",
-          folder: folder,
-          filename: filename + ".md",
-          content: md,
+        var p = Promise.resolve(payload);
+        if (apiKey && word) {
+          p = p.then(function (pl) {
+            return callVaultTaxonomy(word, apiKey).then(function (tax) {
+              pl.taxonomy = tax;
+              return pl;
+            });
+          });
+          p = p.then(function (pl) {
+            if (pl.example && String(pl.example).trim()) {
+              pl.example_source = "user";
+              return pl;
+            }
+            return generateExampleSentence(word, apiKey).then(function (sentence) {
+              if (sentence) {
+                pl.example = sentence;
+                pl.example_source = "deepseek";
+              }
+              return pl;
+            });
+          });
+        }
+        return p.then(function (pl) {
+          var md = buildWordMarkdownVault(pl);
+          return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+            type: "vaultWrite",
+            folder: folder,
+            filename: filename + ".md",
+            content: md,
+          });
         });
       })
       .then(function (res) {
