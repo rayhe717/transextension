@@ -349,7 +349,7 @@ async function markImported(token, pageId) {
 
 function extractSenseFromPage(page) {
   const word = getTextProp(page, "Word");
-  const baseForm = getTextProp(page, "Base form") || word;
+  const baseForm = firstNonEmptyString([getTextProp(page, "Base Form"), getTextProp(page, "Base form")]) || word;
   const translation = getTextProp(page, "Translation");
   const sense = getTextProp(page, "Sense");
   const synonyms = parseSynonyms(getTextProp(page, "Synonyms"));
