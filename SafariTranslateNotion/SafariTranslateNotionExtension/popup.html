@@ -23,14 +23,8 @@
         <section class="popup-output-section">
           <p id="translationText" class="popup-translation"></p>
           <div id="meaningsList" class="popup-meanings"></div>
-          <details class="popup-details">
-            <summary class="popup-details-summary">Example sentence</summary>
-            <textarea id="exampleSentence" class="popup-details-input" rows="2" placeholder="Optional. Leave blank to auto-generate one (academic style)."></textarea>
-          </details>
-          <details class="popup-details">
-            <summary class="popup-details-summary">Notes</summary>
-            <textarea id="notesField" class="popup-details-input" rows="2" placeholder="Optional notes for this word"></textarea>
-          </details>
+          <label for="notesInput" class="popup-label">Notes</label>
+          <textarea id="notesInput" class="popup-input" rows="2" maxlength="500" placeholder="Optional notes..."></textarea>
           <p id="statusText" class="popup-status"></p>
           <p id="alreadyInNotionEl" class="popup-already"></p>
           <p id="alsoSynonymInEl" class="popup-also-synonym"></p>

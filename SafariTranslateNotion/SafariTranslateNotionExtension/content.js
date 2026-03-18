@@ -86,8 +86,13 @@
 
   function buildSavePayload() {
     if (!currentPayload) return null;
+    var rootNotes = "";
+    var root = document.getElementById(TOOLTIP_ID);
+    if (root) {
+      var notesEl = root.querySelector(".stn-tooltip-notes");
+      if (notesEl && typeof notesEl.value === "string") rootNotes = notesEl.value.trim();
+    }
     if (currentPayload.meanings && currentPayload.meanings.length > 0) {
-      var root = document.getElementById(TOOLTIP_ID);
       if (!root) return null;
       var checked = root.querySelectorAll(".stn-tooltip-meanings input[type=checkbox]:checked");
       if (!checked || checked.length === 0) return null;
@@ -97,9 +102,13 @@
         if (!isNaN(idx) && currentPayload.meanings[idx]) selected.push(currentPayload.meanings[idx]);
       }
       if (selected.length === 0) return null;
-      return { original: currentPayload.original, base_form: currentPayload.base_form, context: currentPayload.context, meanings: selected };
+      return { original: currentPayload.original, base_form: currentPayload.base_form, context: currentPayload.context, meanings: selected, notes: rootNotes };
     }
-    if (currentPayload.translation) return currentPayload;
+    if (currentPayload.translation) {
+      var out = Object.assign({}, currentPayload);
+      out.notes = rootNotes;
+      return out;
+    }
     return null;
   }
 
@@ -111,7 +120,7 @@
     }
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && tooltipEl) {
       var payload = buildSavePayload();
-      if (payload) { e.preventDefault(); saveToVault(payload); }
+      if (payload) { e.preventDefault(); saveToNotion(payload); }
     }
   }
 
@@ -204,7 +213,7 @@
     var alreadyEl = root.querySelector(".stn-tooltip-already");
     if (alreadyEl) {
       if (alreadyInNotion) {
-        alreadyEl.textContent = "Already in Vault: " + alreadyInNotion;
+        alreadyEl.textContent = "Already in Notion: " + alreadyInNotion;
         alreadyEl.style.display = "block";
       } else {
         alreadyEl.textContent = "";
@@ -214,7 +223,7 @@
     var alsoSynonymEl = root.querySelector(".stn-tooltip-also-synonym");
     if (alsoSynonymEl) {
       if (alsoSynonymIn && alsoSynonymIn.length > 0) {
-        alsoSynonymEl.textContent = "Also appears in: " + alsoSynonymIn.join(", ");
+        alsoSynonymEl.textContent = "Also appears as synonym in: " + alsoSynonymIn.join(", ");
         alsoSynonymEl.style.display = "block";
       } else {
         alsoSynonymEl.textContent = "";
@@ -224,20 +233,6 @@
     if (statusEl) {
       statusEl.textContent = saveSuccess ? "Saved." : saveError || (error || "");
       statusEl.className = "stn-tooltip-status" + (saveError || error ? " error" : "") + (saveSuccess ? " success" : "");
-      statusEl.title = statusEl.textContent || "";
-      statusEl.onclick = null;
-      if (saveError || error) {
-        statusEl.onclick = function () {
-          try {
-            var text = statusEl.textContent || "";
-            if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-              navigator.clipboard.writeText(text).then(function () {
-                statusEl.textContent = "Copied error. " + text;
-              }).catch(function () {});
-            }
-          } catch (_) {}
-        };
-      }
     }
     if (saveBtn) {
       saveBtn.textContent = saving ? "Saving…" : (timedOut && error ? "Retry" : "Save");
@@ -303,6 +298,8 @@
       '<div class="stn-tooltip-meanings"></div>' +
       '<div class="stn-tooltip-already"></div>' +
       '<div class="stn-tooltip-also-synonym"></div>' +
+      '<div class="stn-tooltip-notes-label">Notes</div>' +
+      '<textarea class="stn-tooltip-notes" rows="2" placeholder="Optional notes…"></textarea>' +
       '<div class="stn-tooltip-actions">' +
       '<button type="button" class="stn-tooltip-btn-save" disabled>Save</button>' +
       '<span class="stn-tooltip-status"></span>' +
@@ -406,7 +403,7 @@
       }
       var payload = buildSavePayload();
       if (!payload) return;
-      saveToVault(payload);
+      saveToNotion(payload);
     });
 
     var writingResultEl = tooltipEl.querySelector(".stn-tooltip-writing-result");
@@ -602,12 +599,12 @@
       .catch(handleTranslateError);
   }
 
-  function saveToVault(payload) {
+  function saveToNotion(payload) {
     var disp = { original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation), loading: false, error: null, saving: true, saveSuccess: false, saveError: null };
     if (currentPayload && currentPayload.meanings) disp.meanings = currentPayload.meanings;
     renderTooltip(disp);
 
-    browser.runtime.sendMessage({ type: "saveToVault", payload: payload })
+    browser.runtime.sendMessage({ type: "saveToNotion", payload: payload })
       .then(function (response) {
         if (response && response.error) {
           renderTooltip({

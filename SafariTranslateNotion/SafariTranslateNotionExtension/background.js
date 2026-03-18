@@ -12,216 +12,9 @@ function getStoredOptions() {
     deepseekApiKey: "",
     notionToken: "",
     notionDatabaseId: "",
-    obsidianVaultPath: "",
-    obsidianVocabFolder: "vocab",
     targetLanguage: DEFAULT_TARGET_LANG,
     maxSelectionLength: 120,
   });
-}
-
-function sanitizeFilename(name) {
-  if (!name || typeof name !== "string") return "";
-  return name
-    .trim()
-    .replace(/[\/\\]/g, "-")
-    .replace(/[:*?"<>|]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 180);
-}
-
-function yamlString(value) {
-  var s = (value == null) ? "" : String(value);
-  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
-  s = s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
-  return "\"" + s + "\"";
-}
-
-var VAULT_TAXONOMY_SYSTEM_PROMPT =
-  "You are a taxonomy classifier for an academic reading vocabulary vault.\n" +
-  "Return JSON only with this schema:\n" +
-  "{\"main_category\":\"<short category>\",\"subcategory\":[\"<subcategory>\",...],\"strength_level\":\"<Strong Claim|Neutral|Caution|Hedge|Definition|Method|Evidence|Result|Limitation|Implication|Contrast|Example|Other>\"}\n\n" +
-  "Rules:\n" +
-  "- main_category: one short category label (e.g., Statistics, Methodology, Argumentation, Theory).\n" +
-  "- subcategory: 0-5 short tags.\n" +
-  "- strength_level: pick the best label from the list above; default Neutral.\n" +
-  "- If unsure: main_category=\"Other\", subcategory=[], strength_level=\"Neutral\".\n";
-
-function parseVaultTaxonomyResponse(text) {
-  var out = { mainCategory: "", subcategory: [], strengthLevel: "" };
-  if (!text || typeof text !== "string") return out;
-  var trimmed = text.trim();
-  try {
-    var jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-    var parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(trimmed);
-    if (parsed && typeof parsed.main_category === "string") out.mainCategory = parsed.main_category.trim();
-    if (parsed && typeof parsed.mainCategory === "string") out.mainCategory = parsed.mainCategory.trim();
-    if (Array.isArray(parsed && parsed.subcategory)) out.subcategory = parsed.subcategory.filter(function (s) { return typeof s === "string"; }).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20);
-    if (parsed && typeof parsed.strength_level === "string") out.strengthLevel = parsed.strength_level.trim();
-    if (parsed && typeof parsed.strengthLevel === "string") out.strengthLevel = parsed.strengthLevel.trim();
-  } catch (_) {}
-  if (!out.mainCategory) out.mainCategory = "Other";
-  if (!out.strengthLevel) out.strengthLevel = "Neutral";
-  return out;
-}
-
-function callVaultTaxonomy(term, apiKey) {
-  if (!term || typeof term !== "string" || !term.trim() || !apiKey) return Promise.resolve(parseVaultTaxonomyResponse(""));
-  var userContent = "Classify this term:\n\nTERM: \"" + term.trim().slice(0, 500) + "\"";
-  var body = JSON.stringify({
-    model: "deepseek-chat",
-    messages: [
-      { role: "system", content: VAULT_TAXONOMY_SYSTEM_PROMPT },
-      { role: "user", content: userContent },
-    ],
-    max_tokens: 256,
-    temperature: 0.2,
-    response_format: { type: "json_object" },
-  });
-  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
-    type: "apiRequest",
-    url: DEEPSEEK_URL,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + apiKey,
-    },
-    body: body,
-  }).then(function (res) {
-    if (!res || res.error) return parseVaultTaxonomyResponse("");
-    var status = res.status;
-    var responseText = res.body || "";
-    if (status < 200 || status >= 300) return parseVaultTaxonomyResponse("");
-    try {
-      var data = JSON.parse(responseText);
-      var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-      return parseVaultTaxonomyResponse(content || "");
-    } catch (_) {
-      return parseVaultTaxonomyResponse("");
-    }
-  }).catch(function () {
-    return parseVaultTaxonomyResponse("");
-  });
-}
-
-function generateExampleSentence(term, apiKey) {
-  if (!term || typeof term !== "string" || !term.trim() || !apiKey) return Promise.resolve(null);
-  var w = term.trim().slice(0, 200);
-  var userContent = "Write exactly one academic English sentence that uses the word \"" + w + "\" naturally. Length: 20–35 words. Output only the sentence, no quotes or numbering.";
-  var body = JSON.stringify({
-    model: "deepseek-chat",
-    messages: [{ role: "user", content: userContent }],
-    max_tokens: 120,
-    temperature: 0.3,
-  });
-  return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
-    type: "apiRequest",
-    url: DEEPSEEK_URL,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + apiKey,
-    },
-    body: body,
-  }).then(function (res) {
-    if (!res || res.error) return null;
-    var status = res.status;
-    var responseText = res.body || "";
-    if (status < 200 || status >= 300) return null;
-    try {
-      var data = JSON.parse(responseText);
-      var content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-      var sentence = (typeof content === "string" ? content.trim() : "").replace(/^[\"']|[\"']$/g, "");
-      return sentence || null;
-    } catch (_) {
-      return null;
-    }
-  }).catch(function () { return null; });
-}
-
-function buildWordMarkdownVault(payload) {
-  var word = (payload.original || "").trim();
-  var baseForm = (payload.base_form || payload.original || "").trim();
-  var example = (payload.example && typeof payload.example === "string") ? payload.example.trim() : "";
-  var notes = (payload.notes && typeof payload.notes === "string") ? payload.notes.trim() : "";
-  var exampleSource = (payload.example_source === "deepseek" || payload.example_source === "user") ? payload.example_source : "";
-  var tax = payload && payload.taxonomy ? payload.taxonomy : null;
-  var mainCategory = tax && typeof tax.mainCategory === "string" ? tax.mainCategory.trim() : "";
-  var strengthLevel = tax && typeof tax.strengthLevel === "string" ? tax.strengthLevel.trim() : "";
-  var subcategory = tax && Array.isArray(tax.subcategory) ? tax.subcategory.filter(function (s) { return typeof s === "string"; }).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20) : [];
-  var meanings = Array.isArray(payload.meanings) && payload.meanings.length
-    ? payload.meanings.map(function (m) {
-        return {
-          translation: (m && typeof m.translation === "string") ? m.translation.trim() : "",
-          sense: (m && typeof m.sense === "string") ? m.sense.trim() : "",
-          synonyms: Array.isArray(m && m.synonyms) ? m.synonyms.filter(function (s) { return typeof s === "string"; }).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 40) : [],
-        };
-      })
-    : [{
-        translation: (payload.translation || "").trim(),
-        sense: (payload.sense || "").trim(),
-        synonyms: Array.isArray(payload.synonyms) ? payload.synonyms : [],
-      }];
-
-  var now = new Date().toISOString();
-  var lines = [
-    "---",
-    "word: " + yamlString(word),
-    "base_form: " + yamlString(baseForm),
-    "main_category: " + yamlString(mainCategory),
-    "subcategory:",
-    (subcategory.length ? subcategory.map(function (s) { return "  - " + yamlString(s); }).join("\n") : "  - \"\""),
-    "strength_level: " + yamlString(strengthLevel),
-    "created: " + yamlString(now),
-    "tags:",
-    "  - vocab",
-  ];
-  if (example) lines.push("example: " + yamlString(example));
-  if (exampleSource) lines.push("example_source: " + yamlString(exampleSource));
-  if (notes) lines.push("notes: " + yamlString(notes));
-
-  if (meanings.length <= 1) {
-    var m0 = meanings[0] || { translation: "", sense: "", synonyms: [] };
-    lines.push("translation: " + yamlString(m0.translation || ""));
-    lines.push("sense: " + yamlString(m0.sense || ""));
-    lines.push("synonyms:");
-    if (m0.synonyms && m0.synonyms.length) {
-      m0.synonyms.forEach(function (s) { lines.push("  - " + yamlString("[[" + s + "]]")); });
-    } else {
-      lines.push("  - \"\"");
-    }
-  } else {
-    lines.push("translations:");
-    meanings.forEach(function (m) { lines.push("  - " + yamlString(m.translation || "")); });
-    lines.push("senses:");
-    meanings.forEach(function (m) { lines.push("  - " + yamlString(m.sense || "")); });
-    meanings.forEach(function (m, i) {
-      lines.push("synonyms_" + (i + 1) + ":");
-      if (m.synonyms && m.synonyms.length) {
-        m.synonyms.forEach(function (s) { lines.push("  - " + yamlString("[[" + s + "]]")); });
-      } else {
-        lines.push("  - \"\"");
-      }
-    });
-  }
-
-  lines.push("---", "", "# " + word, "");
-  meanings.forEach(function (m, i) {
-    var n = i + 1;
-    lines.push("## Sense " + n, "");
-    lines.push("- **Translation**: " + (m.translation || "—"));
-    lines.push("- **Meaning**: " + (m.sense || "—"));
-    lines.push("- **Synonyms**: " + (m.synonyms && m.synonyms.length ? m.synonyms.map(function (s) { return "[[" + s + "]]"; }).join(", ") : "—"));
-    lines.push("");
-  });
-  if (example) {
-    lines.push("## Example", "", example, "");
-  }
-  if (notes) {
-    lines.push("## Notes", "", notes, "");
-  }
-  lines.push("");
-  return lines.join("\n");
 }
 
 function formatMeaningsAsTranslation(meanings) {
@@ -801,6 +594,10 @@ function saveToNotionApi(payload, notionToken, databaseId) {
     if (senseText) {
       props["Sense"] = { rich_text: [{ type: "text", text: { content: senseText.slice(0, 2000) } }] };
     }
+    var notesText = (payload.notes && typeof payload.notes === "string") ? payload.notes.trim() : "";
+    if (notesText) {
+      props["Notes"] = { rich_text: [{ type: "text", text: { content: notesText.slice(0, 2000) } }] };
+    }
 
     var tax = payload.taxonomy;
     if (tax) {
@@ -993,19 +790,10 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     var baseForm = message.baseForm;
     getStoredOptions()
       .then(function (opts) {
-        var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
-        if (!folder) folder = "vocab";
-        return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
-          type: "vaultExists",
-          folder: folder,
-          vaultPath: (opts.obsidianVaultPath && typeof opts.obsidianVaultPath === "string") ? opts.obsidianVaultPath.trim() : "",
-          word: (word && typeof word === "string") ? word.trim() : "",
-          baseForm: (baseForm && typeof baseForm === "string") ? baseForm.trim() : "",
-        }).then(function (r) {
-          return (r && typeof r.found === "boolean") ? r : { found: false };
-        }).catch(function () {
+        if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
           return { found: false };
-        });
+        }
+        return checkNotionForExistingWordOrBaseForm(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm);
       })
       .catch(function () { return { found: false }; })
       .then(reply);
@@ -1017,30 +805,11 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     var baseForm = message.baseForm;
     getStoredOptions()
       .then(function (opts) {
-        var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
-        if (!folder) folder = "vocab";
-        var term = (word && typeof word === "string") ? word.trim() : "";
-        var base = (baseForm && typeof baseForm === "string") ? baseForm.trim() : "";
-        function uniq(arr) {
-          var seen = {};
-          var out = [];
-          for (var i = 0; i < (arr || []).length; i++) {
-            var v = arr[i];
-            if (!v || seen[v]) continue;
-            seen[v] = true;
-            out.push(v);
-          }
-          return out;
-        }
-        var vaultPath = (opts.obsidianVaultPath && typeof opts.obsidianVaultPath === "string") ? opts.obsidianVaultPath.trim() : "";
-        var p1 = term ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, vaultPath: vaultPath, term: term, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
-        var p2 = (base && base !== term) ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, vaultPath: vaultPath, term: base, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
-        return Promise.all([p1, p2]).then(function (rs) {
-          var a = (rs[0] && rs[0].alsoSynonymIn) ? rs[0].alsoSynonymIn : [];
-          var b = (rs[1] && rs[1].alsoSynonymIn) ? rs[1].alsoSynonymIn : [];
-          return { alsoSynonymIn: uniq([].concat(a, b)) };
-        }).catch(function () {
+        if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
           return { alsoSynonymIn: [] };
+        }
+        return getWordTitlesWhereSynonymsContain(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm).then(function (wordTitles) {
+          return { alsoSynonymIn: wordTitles || [] };
         });
       })
       .catch(function () { return { alsoSynonymIn: [] }; })
@@ -1084,6 +853,7 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
                 synonyms: m.synonyms || [],
                 word_class: m.word_class || "",
                 base_form: payload.base_form || payload.original || "",
+                notes: (payload.notes && typeof payload.notes === "string") ? payload.notes.trim() : "",
                 taxonomy: taxonomy,
               };
               return saveToNotionApi(sensePayload, token, dbId);
@@ -1111,63 +881,6 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
           msg = "Notion network error: " + msg + ". Check that api.notion.com is reachable from your network, and verify API secret + Database ID in Options.";
         }
         reply({ error: msg });
-      });
-    return true;
-  }
-
-  if (message.type === "saveToVault") {
-    var payload = message.payload;
-    if (!payload) {
-      reply({ error: "Missing payload" });
-      return false;
-    }
-    getStoredOptions()
-      .then(function (opts) {
-        var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
-        if (!folder) folder = "vocab";
-        var apiKey = (opts.deepseekApiKey && opts.deepseekApiKey.trim()) ? opts.deepseekApiKey.trim() : "";
-        var word = (payload.original || "").trim();
-        var filename = sanitizeFilename(word);
-        if (!filename) throw new Error("Word is empty. Translate first.");
-        var p = Promise.resolve(payload);
-        if (apiKey && word) {
-          p = p.then(function (pl) {
-            return callVaultTaxonomy(word, apiKey).then(function (tax) {
-              pl.taxonomy = tax;
-              return pl;
-            });
-          });
-          p = p.then(function (pl) {
-            if (pl.example && String(pl.example).trim()) {
-              pl.example_source = "user";
-              return pl;
-            }
-            return generateExampleSentence(word, apiKey).then(function (sentence) {
-              if (sentence) {
-                pl.example = sentence;
-                pl.example_source = "deepseek";
-              }
-              return pl;
-            });
-          });
-        }
-        return p.then(function (pl) {
-          var md = buildWordMarkdownVault(pl);
-          return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
-            type: "vaultWrite",
-            folder: folder,
-            vaultPath: (opts.obsidianVaultPath && typeof opts.obsidianVaultPath === "string") ? opts.obsidianVaultPath.trim() : "",
-            filename: filename + ".md",
-            content: md,
-          });
-        });
-      })
-      .then(function (res) {
-        if (res && res.error) throw new Error(res.error);
-        reply({ ok: true, count: 1 });
-      })
-      .catch(function (err) {
-        reply({ error: (err && err.message) ? err.message : "Vault save failed" });
       });
     return true;
   }

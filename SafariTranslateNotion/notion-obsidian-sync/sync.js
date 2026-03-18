@@ -288,14 +288,14 @@ function appendSenseToBody(body, word, senseNumber, sense) {
 
   parts.push(`## Sense ${senseNumber}\n`);
   parts.push(`- **Translation**: ${sense.translation || "—"}\n`);
-  const meaning = (sense.sense && String(sense.sense).trim())
-    ? String(sense.sense).trim()
-    : ((sense.notes && String(sense.notes).trim()) ? String(sense.notes).trim() : "");
-  parts.push(`- **Meaning**: ${meaning || "—"}\n`);
   const synLine = (sense.synonyms && sense.synonyms.length)
     ? sense.synonyms.map((s) => `[[${s}]]`).join(", ")
     : "—";
   parts.push(`- **Synonyms**: ${synLine}\n\n`);
+  const notes = (sense.notes && String(sense.notes).trim()) ? String(sense.notes).trim() : "";
+  if (notes) {
+    parts.push(`- **Notes**: ${notes}\n\n`);
+  }
   return parts.join("");
 }
 

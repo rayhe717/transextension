@@ -149,6 +149,32 @@
   border-radius: 4px;
 }
 
+.stn-tooltip-notes-label {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.stn-tooltip-notes {
+  margin-top: 4px;
+  width: 100%;
+  resize: vertical;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+}
+
+.stn-tooltip-notes:focus {
+  border-color: #83bae9;
+  box-shadow: 0 0 0 2px rgba(131, 186, 233, 0.25);
+}
+
 .stn-tooltip-actions {
   display: flex;
   align-items: center;
@@ -189,24 +215,11 @@
   font-size: 10px;
   color: #6b7280;
   font-weight: normal;
-  display: block;
+  display: inline;
   min-width: 0;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 52px;
-  padding: 4px 6px;
-  border-radius: 6px;
-}
-
-.stn-tooltip-status:not(:empty) {
-  margin-top: 8px;
-  background: rgba(107, 114, 128, 0.08);
-}
-
-.stn-tooltip-status.error:not(:empty) {
-  background: rgba(185, 28, 28, 0.08);
-  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stn-tooltip-status.error {

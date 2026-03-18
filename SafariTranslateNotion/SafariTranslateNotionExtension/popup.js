@@ -8,8 +8,7 @@
   const statusEl = document.getElementById("statusText");
   const alreadyInNotionEl = document.getElementById("alreadyInNotionEl");
   const alsoSynonymInEl = document.getElementById("alsoSynonymInEl");
-  const exampleSentenceEl = document.getElementById("exampleSentence");
-  const notesFieldEl = document.getElementById("notesField");
+  const notesInputEl = document.getElementById("notesInput");
 
   let currentPayload = null;
 
@@ -20,7 +19,7 @@
       alsoSynonymInEl.style.display = "none";
       return;
     }
-    alsoSynonymInEl.textContent = "Also appears in: " + wordTitles.join(", ");
+    alsoSynonymInEl.textContent = "Also appears as synonym in: " + wordTitles.join(", ");
     alsoSynonymInEl.style.display = "block";
   }
 
@@ -47,8 +46,7 @@
     setBusy(true);
     setStatus("Translating...");
     translationEl.textContent = "";
-    if (exampleSentenceEl) exampleSentenceEl.value = "";
-    if (notesFieldEl) notesFieldEl.value = "";
+    if (notesInputEl) notesInputEl.value = "";
     if (alreadyInNotionEl) { alreadyInNotionEl.textContent = ""; alreadyInNotionEl.style.display = "none"; }
     if (alsoSynonymInEl) { alsoSynonymInEl.textContent = ""; alsoSynonymInEl.style.display = "none"; }
     currentPayload = null;
@@ -118,7 +116,7 @@
           var r = results[0].status === "fulfilled" ? results[0].value : null;
           var r2 = results[1].status === "fulfilled" ? results[1].value : null;
           if (alreadyInNotionEl && r && r.found && r.value) {
-            alreadyInNotionEl.textContent = "Already in Vault: " + r.value;
+            alreadyInNotionEl.textContent = "Already in Notion: " + r.value;
             alreadyInNotionEl.style.display = "block";
           }
           if (r2 && r2.alsoSynonymIn && Array.isArray(r2.alsoSynonymIn) && r2.alsoSynonymIn.length > 0) {
@@ -153,6 +151,7 @@
       base_form: currentPayload.base_form,
       context: currentPayload.context,
       meanings: selected,
+      notes: (notesInputEl && typeof notesInputEl.value === "string") ? notesInputEl.value.trim() : "",
     };
   }
 
@@ -162,13 +161,14 @@
       if (!currentPayload) setStatus("Translate first before saving.", "error");
       return;
     }
-    payload.example = (exampleSentenceEl && exampleSentenceEl.value) ? exampleSentenceEl.value.trim() : "";
-    payload.notes = (notesFieldEl && notesFieldEl.value) ? notesFieldEl.value.trim() : "";
+    if (!payload.meanings) {
+      payload = Object.assign({}, payload, { notes: (notesInputEl && typeof notesInputEl.value === "string") ? notesInputEl.value.trim() : "" });
+    }
     translateBtn.disabled = true;
     saveBtn.disabled = true;
     setStatus("Saving...");
 
-    browser.runtime.sendMessage({ type: "saveToVault", payload: payload })
+    browser.runtime.sendMessage({ type: "saveToNotion", payload: payload })
       .then(function (response) {
         translateBtn.disabled = false;
         saveBtn.disabled = false;
@@ -177,7 +177,7 @@
           return;
         }
         var count = (response && response.count) ? response.count : 1;
-        setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Vault.", "success");
+        setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Notion.", "success");
         var alsoIn = response && response.alsoSynonymIn && response.alsoSynonymIn.length > 0 ? response.alsoSynonymIn : null;
         showAlsoSynonymIn(alsoIn);
       })
