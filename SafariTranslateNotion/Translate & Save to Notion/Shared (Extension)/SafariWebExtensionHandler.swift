@@ -141,25 +141,27 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private func pickVaultFolder(context: NSExtensionContext) {
 #if os(macOS)
         DispatchQueue.main.async { [weak self] in
+            NSApplication.shared.activate(ignoringOtherApps: true)
             let panel = NSOpenPanel()
             panel.canChooseFiles = false
             panel.canChooseDirectories = true
             panel.allowsMultipleSelection = false
             panel.prompt = "Choose Vault"
             panel.message = "Choose your Obsidian vault folder."
-            let response = panel.runModal()
-            guard response == .OK, let url = panel.url else {
-                self?.respond(with: ["error": "No folder selected."], context: context)
-                return
-            }
-            do {
-                let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
-                let b64 = bookmark.base64EncodedString()
-                self?.keychainWrite(service: kOptionsKeychainService, account: "vaultBookmark", value: b64)
-                self?.keychainWrite(service: kOptionsKeychainService, account: "obsidianVaultPath", value: url.path)
-                self?.respond(with: ["ok": true, "vaultPath": url.path], context: context)
-            } catch {
-                self?.respond(with: ["error": "Failed to store vault permission: \(error.localizedDescription)"], context: context)
+            panel.begin { response in
+                guard response == .OK, let url = panel.url else {
+                    self?.respond(with: ["error": "No folder selected."], context: context)
+                    return
+                }
+                do {
+                    let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+                    let b64 = bookmark.base64EncodedString()
+                    self?.keychainWrite(service: kOptionsKeychainService, account: "vaultBookmark", value: b64)
+                    self?.keychainWrite(service: kOptionsKeychainService, account: "obsidianVaultPath", value: url.path)
+                    self?.respond(with: ["ok": true, "vaultPath": url.path], context: context)
+                } catch {
+                    self?.respond(with: ["error": "Failed to store vault permission: \(error.localizedDescription)"], context: context)
+                }
             }
         }
 #else
