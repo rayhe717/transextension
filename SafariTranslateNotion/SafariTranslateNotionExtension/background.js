@@ -993,10 +993,18 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     var baseForm = message.baseForm;
     getStoredOptions()
       .then(function (opts) {
-        if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
+        var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
+        if (!folder) folder = "vocab";
+        return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+          type: "vaultExists",
+          folder: folder,
+          word: (word && typeof word === "string") ? word.trim() : "",
+          baseForm: (baseForm && typeof baseForm === "string") ? baseForm.trim() : "",
+        }).then(function (r) {
+          return (r && typeof r.found === "boolean") ? r : { found: false };
+        }).catch(function () {
           return { found: false };
-        }
-        return checkNotionForExistingWordOrBaseForm(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm);
+        });
       })
       .catch(function () { return { found: false }; })
       .then(reply);
@@ -1008,11 +1016,29 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     var baseForm = message.baseForm;
     getStoredOptions()
       .then(function (opts) {
-        if (!opts.notionToken || !opts.notionToken.trim() || !opts.notionDatabaseId || !opts.notionDatabaseId.trim()) {
-          return { alsoSynonymIn: [] };
+        var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
+        if (!folder) folder = "vocab";
+        var term = (word && typeof word === "string") ? word.trim() : "";
+        var base = (baseForm && typeof baseForm === "string") ? baseForm.trim() : "";
+        function uniq(arr) {
+          var seen = {};
+          var out = [];
+          for (var i = 0; i < (arr || []).length; i++) {
+            var v = arr[i];
+            if (!v || seen[v]) continue;
+            seen[v] = true;
+            out.push(v);
+          }
+          return out;
         }
-        return getWordTitlesWhereSynonymsContain(opts.notionToken.trim(), opts.notionDatabaseId.trim(), word, baseForm).then(function (wordTitles) {
-          return { alsoSynonymIn: wordTitles || [] };
+        var p1 = term ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, term: term, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
+        var p2 = (base && base !== term) ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, term: base, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
+        return Promise.all([p1, p2]).then(function (rs) {
+          var a = (rs[0] && rs[0].alsoSynonymIn) ? rs[0].alsoSynonymIn : [];
+          var b = (rs[1] && rs[1].alsoSynonymIn) ? rs[1].alsoSynonymIn : [];
+          return { alsoSynonymIn: uniq([].concat(a, b)) };
+        }).catch(function () {
+          return { alsoSynonymIn: [] };
         });
       })
       .catch(function () { return { alsoSynonymIn: [] }; })

@@ -48,6 +48,14 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             handleVaultWrite(msg, context: context)
             return
         }
+        if type == "vaultExists" {
+            handleVaultExists(msg, context: context)
+            return
+        }
+        if type == "vaultFindSynonymIn" {
+            handleVaultFindSynonymIn(msg, context: context)
+            return
+        }
 
         respond(with: ["echo": msg], context: context)
     }
@@ -227,6 +235,99 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
 #else
         respond(with: ["error": "Vault write is only supported on macOS."], context: context)
+#endif
+    }
+
+    private func handleVaultExists(_ msg: [String: Any], context: NSExtensionContext) {
+#if os(macOS)
+        let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
+        let word = (msg["word"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseForm = (msg["baseForm"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let candidates = [word, baseForm].filter { !$0.isEmpty }
+        if candidates.isEmpty {
+            respond(with: ["found": false], context: context)
+            return
+        }
+        guard let bookmarkB64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
+              let bookmarkData = Data(base64Encoded: bookmarkB64) else {
+            respond(with: ["found": false], context: context)
+            return
+        }
+        var stale = false
+        do {
+            let vaultURL = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+            if stale { respond(with: ["found": false], context: context); return }
+            guard vaultURL.startAccessingSecurityScopedResource() else {
+                respond(with: ["found": false], context: context)
+                return
+            }
+            defer { vaultURL.stopAccessingSecurityScopedResource() }
+            let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+            for c in candidates {
+                let fn = sanitizeFilename(c) + ".md"
+                if fn == ".md" { continue }
+                let fileURL = targetDir.appendingPathComponent(fn, isDirectory: false)
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    respond(with: ["found": true, "value": c], context: context)
+                    return
+                }
+            }
+            respond(with: ["found": false], context: context)
+        } catch {
+            respond(with: ["found": false], context: context)
+        }
+#else
+        respond(with: ["found": false], context: context)
+#endif
+    }
+
+    private func handleVaultFindSynonymIn(_ msg: [String: Any], context: NSExtensionContext) {
+#if os(macOS)
+        let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
+        let term = (msg["term"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let limit = min(max((msg["limit"] as? Int) ?? 200, 1), 800)
+        if term.isEmpty {
+            respond(with: ["alsoSynonymIn": []], context: context)
+            return
+        }
+        guard let bookmarkB64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
+              let bookmarkData = Data(base64Encoded: bookmarkB64) else {
+            respond(with: ["alsoSynonymIn": []], context: context)
+            return
+        }
+        var stale = false
+        do {
+            let vaultURL = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+            if stale { respond(with: ["alsoSynonymIn": []], context: context); return }
+            guard vaultURL.startAccessingSecurityScopedResource() else {
+                respond(with: ["alsoSynonymIn": []], context: context)
+                return
+            }
+            defer { vaultURL.stopAccessingSecurityScopedResource() }
+            let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+            let needle = "[[\(term)]]"
+            var hits: [String] = []
+            if let files = try? FileManager.default.contentsOfDirectory(at: targetDir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+                for url in files {
+                    if hits.count >= limit { break }
+                    let name = url.lastPathComponent
+                    if !name.lowercased().hasSuffix(".md") { continue }
+                    if name.hasPrefix("_") { continue }
+                    if let data = try? Data(contentsOf: url, options: [.mappedIfSafe]),
+                       let text = String(data: data, encoding: .utf8),
+                       text.contains(needle) {
+                        hits.append(url.deletingPathExtension().lastPathComponent)
+                    }
+                }
+            }
+            respond(with: ["alsoSynonymIn": hits], context: context)
+        } catch {
+            respond(with: ["alsoSynonymIn": []], context: context)
+        }
+#else
+        respond(with: ["alsoSynonymIn": []], context: context)
 #endif
     }
 
