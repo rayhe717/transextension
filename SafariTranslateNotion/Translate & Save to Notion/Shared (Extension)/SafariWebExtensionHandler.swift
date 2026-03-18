@@ -7,6 +7,7 @@ import AppKit
 
 private let kOptionsKeychainService = "com.yourCompany.Translate-Save-to-Notion.options"
 private let kOptionsKeys = ["deepseekApiKey", "notionToken", "notionDatabaseId", "obsidianVaultPath", "vaultBookmark"]
+private let kVaultAppGroupId = "group.com.yourCompany.TranslateSaveToNotion"
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
@@ -66,6 +67,12 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             if let value = keychainRead(service: kOptionsKeychainService, account: key) {
                 result[key] = value
             }
+        }
+        // Prefer App Group values for vault path (shared with container app).
+        if let defaults = UserDefaults(suiteName: kVaultAppGroupId),
+           let p = defaults.string(forKey: "obsidianVaultPath"),
+           !p.isEmpty {
+            result["obsidianVaultPath"] = p
         }
         return result
     }
@@ -197,14 +204,23 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             respond(with: ["error": "Missing filename"], context: context)
             return
         }
-        guard let bookmarkB64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
-              let bookmarkData = Data(base64Encoded: bookmarkB64) else {
-            respond(with: ["error": "Vault folder not set. Open extension Options and choose your vault."], context: context)
+        // Read bookmark from App Group first (shared with container app).
+        var bookmarkData: Data? = nil
+        if let defaults = UserDefaults(suiteName: kVaultAppGroupId),
+           let b64 = defaults.string(forKey: "vaultBookmark"),
+           let data = Data(base64Encoded: b64) {
+            bookmarkData = data
+        } else if let b64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
+                  let data = Data(base64Encoded: b64) {
+            bookmarkData = data
+        }
+        guard let bookmarkDataUnwrapped = bookmarkData else {
+            respond(with: ["error": "Vault folder not set. Open the container app and choose your vault folder."], context: context)
             return
         }
         var stale = false
         do {
-            let vaultURL = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+            let vaultURL = try URL(resolvingBookmarkData: bookmarkDataUnwrapped, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
             if stale {
                 respond(with: ["error": "Vault permission expired. Choose the vault folder again."], context: context)
                 return
@@ -228,6 +244,11 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 // The stored bookmark data is likely corrupt/unreadable; clear it so the user can re-pick.
                 keychainDelete(service: kOptionsKeychainService, account: "vaultBookmark")
                 keychainDelete(service: kOptionsKeychainService, account: "obsidianVaultPath")
+                if let defaults = UserDefaults(suiteName: kVaultAppGroupId) {
+                    defaults.removeObject(forKey: "vaultBookmark")
+                    defaults.removeObject(forKey: "obsidianVaultPath")
+                    defaults.synchronize()
+                }
                 respond(with: ["error": "Vault permission data is invalid (corrupted bookmark). Please open the container app and choose your vault folder again."], context: context)
                 return
             }
@@ -248,8 +269,16 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             respond(with: ["found": false], context: context)
             return
         }
-        guard let bookmarkB64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
-              let bookmarkData = Data(base64Encoded: bookmarkB64) else {
+        var bookmarkData: Data? = nil
+        if let defaults = UserDefaults(suiteName: kVaultAppGroupId),
+           let b64 = defaults.string(forKey: "vaultBookmark"),
+           let data = Data(base64Encoded: b64) {
+            bookmarkData = data
+        } else if let b64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
+                  let data = Data(base64Encoded: b64) {
+            bookmarkData = data
+        }
+        guard let bookmarkData = bookmarkData else {
             respond(with: ["found": false], context: context)
             return
         }
@@ -291,8 +320,16 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             respond(with: ["alsoSynonymIn": []], context: context)
             return
         }
-        guard let bookmarkB64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
-              let bookmarkData = Data(base64Encoded: bookmarkB64) else {
+        var bookmarkData: Data? = nil
+        if let defaults = UserDefaults(suiteName: kVaultAppGroupId),
+           let b64 = defaults.string(forKey: "vaultBookmark"),
+           let data = Data(base64Encoded: b64) {
+            bookmarkData = data
+        } else if let b64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
+                  let data = Data(base64Encoded: b64) {
+            bookmarkData = data
+        }
+        guard let bookmarkData = bookmarkData else {
             respond(with: ["alsoSynonymIn": []], context: context)
             return
         }

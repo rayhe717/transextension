@@ -19,6 +19,7 @@ typealias PlatformViewController = NSViewController
 
 let extensionBundleIdentifier = "com.yourCompany.Translate---Save-to-Notion.Extension"
 let optionsKeychainService = "com.yourCompany.Translate-Save-to-Notion.options"
+let vaultAppGroupId = "group.com.yourCompany.TranslateSaveToNotion"
 
 class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMessageHandler {
 
@@ -94,13 +95,24 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
             do {
                 let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
                 let b64 = bookmark.base64EncodedString()
-                self?.keychainWrite(service: optionsKeychainService, account: "vaultBookmark", value: b64)
-                self?.keychainWrite(service: optionsKeychainService, account: "obsidianVaultPath", value: url.path)
+                self?.writeSharedVaultPermission(bookmarkB64: b64, vaultPath: url.path)
                 self?.webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + self!.jsString(url.path) + ";")
             } catch {
                 self?.webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + self!.jsString("Failed to save vault permission.") + ";")
             }
         }
+    }
+
+    private func writeSharedVaultPermission(bookmarkB64: String, vaultPath: String) {
+        // Store in App Group so the extension can read it.
+        if let defaults = UserDefaults(suiteName: vaultAppGroupId) {
+            defaults.set(bookmarkB64, forKey: "vaultBookmark")
+            defaults.set(vaultPath, forKey: "obsidianVaultPath")
+            defaults.synchronize()
+        }
+        // Also keep a copy in Keychain for debugging/back-compat.
+        keychainWrite(service: optionsKeychainService, account: "vaultBookmark", value: bookmarkB64)
+        keychainWrite(service: optionsKeychainService, account: "obsidianVaultPath", value: vaultPath)
     }
 
     private func keychainWrite(service: String, account: String, value: String) {
