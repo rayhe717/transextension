@@ -13,13 +13,10 @@ typealias PlatformViewController = UIViewController
 #elseif os(macOS)
 import Cocoa
 import SafariServices
-import Security
 typealias PlatformViewController = NSViewController
 #endif
 
 let extensionBundleIdentifier = "com.yourCompany.Translate---Save-to-Notion.Extension"
-let optionsKeychainService = "com.yourCompany.Translate-Save-to-Notion.options"
-let vaultAppGroupId = "group.com.yourCompany.TranslateSaveToNotion"
 
 class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMessageHandler {
 
@@ -64,79 +61,21 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
 #if os(macOS)
-        guard let command = message.body as? String else { return }
-
-        if command == "open-preferences" {
-            SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
-                guard error == nil else { return }
-                DispatchQueue.main.async { NSApp.terminate(self) }
-            }
+        if (message.body as! String != "open-preferences") {
             return
         }
 
-        if command == "pick-vault" {
-            pickVaultFolder()
-            return
+        SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
+            guard error == nil else {
+                // Insert code to inform the user that something went wrong.
+                return
+            }
+
+            DispatchQueue.main.async {
+                NSApp.terminate(self)
+            }
         }
 #endif
     }
 
-#if os(macOS)
-    private func pickVaultFolder() {
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.prompt = "Choose Vault"
-        panel.message = "Choose your Obsidian vault folder."
-        panel.begin { [weak self] response in
-            guard response == .OK, let url = panel.url else { return }
-            do {
-                let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
-                self?.writeSharedVaultPermission(bookmarkData: bookmark, vaultPath: url.path)
-                self?.webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + self!.jsString(url.path) + ";")
-            } catch {
-                self?.webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + self!.jsString("Failed to save vault permission.") + ";")
-            }
-        }
-    }
-
-    private func writeSharedVaultPermission(bookmarkData: Data, vaultPath: String) {
-        // Store in App Group so the extension can read it.
-        guard let defaults = UserDefaults(suiteName: vaultAppGroupId) else {
-            // App Group not configured/enabled in signing; extension won't be able to read vault permission.
-            webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + jsString("App Group is not available. In Xcode, enable App Groups for both the macOS app and macOS extension, then choose the vault again.") + ";")
-            return
-        }
-        defaults.set(bookmarkData, forKey: "vaultBookmarkData")
-        defaults.set(bookmarkData.base64EncodedString(), forKey: "vaultBookmark") // legacy
-        defaults.set(vaultPath, forKey: "obsidianVaultPath")
-        defaults.synchronize()
-        // Also keep a copy in Keychain for debugging/back-compat.
-        keychainWrite(service: optionsKeychainService, account: "vaultBookmark", value: bookmarkData.base64EncodedString())
-        keychainWrite(service: optionsKeychainService, account: "obsidianVaultPath", value: vaultPath)
-    }
-
-    private func keychainWrite(service: String, account: String, value: String) {
-        guard let data = value.data(using: .utf8) else { return }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        SecItemDelete(query as CFDictionary)
-        var addQuery = query
-        addQuery[kSecValueData as String] = data
-        SecItemAdd(addQuery as CFDictionary, nil)
-    }
-
-    private func jsString(_ s: String) -> String {
-        let escaped = s
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "\n", with: "\\n")
-        return "\"" + escaped + "\""
-    }
-#endif
 }
