@@ -182,8 +182,9 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private func handleVaultWrite(_ msg: [String: Any], context: NSExtensionContext) {
 #if os(macOS)
         let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
-        let filename = (msg["filename"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawFilename = (msg["filename"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let content = msg["content"] as? String ?? ""
+        let filename = sanitizeFilename(rawFilename)
         guard !filename.isEmpty else {
             respond(with: ["error": "Missing filename"], context: context)
             return
@@ -196,6 +197,10 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         var stale = false
         do {
             let vaultURL = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+            if stale {
+                respond(with: ["error": "Vault permission expired. Choose the vault folder again."], context: context)
+                return
+            }
             guard vaultURL.startAccessingSecurityScopedResource() else {
                 respond(with: ["error": "No permission to access the vault folder. Choose it again in Options."], context: context)
                 return
@@ -206,15 +211,34 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
             try FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
             let fileURL = targetDir.appendingPathComponent(filename, isDirectory: false)
-            try content.write(to: fileURL, atomically: true, encoding: .utf8)
+            let data = content.data(using: .utf8) ?? Data()
+            try data.write(to: fileURL, options: [.atomic])
             respond(with: ["ok": true, "path": fileURL.path], context: context)
         } catch {
-            respond(with: ["error": "Vault write failed: \(error.localizedDescription)"], context: context)
+            let ns = error as NSError
+            respond(with: ["error": "Vault write failed: \(ns.localizedDescription) (domain=\(ns.domain) code=\(ns.code))"], context: context)
         }
 #else
         respond(with: ["error": "Vault write is only supported on macOS."], context: context)
 #endif
     }
+
+#if os(macOS)
+    private func sanitizeFilename(_ name: String) -> String {
+        var s = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.isEmpty { return "" }
+        // Prevent path traversal / separators.
+        s = s.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: "\\", with: "-")
+        // Remove common illegal filename characters.
+        let illegal = CharacterSet(charactersIn: ":*?\"<>|")
+        s = s.components(separatedBy: illegal).joined()
+        // Collapse whitespace.
+        while s.contains("  ") { s = s.replacingOccurrences(of: "  ", with: " ") }
+        s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.count > 180 { s = String(s.prefix(180)) }
+        return s
+    }
+#endif
 
     private func respond(with data: [String: Any], context: NSExtensionContext) {
         let response = NSExtensionItem()
