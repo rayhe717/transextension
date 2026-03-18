@@ -224,6 +224,20 @@
     if (statusEl) {
       statusEl.textContent = saveSuccess ? "Saved." : saveError || (error || "");
       statusEl.className = "stn-tooltip-status" + (saveError || error ? " error" : "") + (saveSuccess ? " success" : "");
+      statusEl.title = statusEl.textContent || "";
+      statusEl.onclick = null;
+      if (saveError || error) {
+        statusEl.onclick = function () {
+          try {
+            var text = statusEl.textContent || "";
+            if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+              navigator.clipboard.writeText(text).then(function () {
+                statusEl.textContent = "Copied error. " + text;
+              }).catch(function () {});
+            }
+          } catch (_) {}
+        };
+      }
     }
     if (saveBtn) {
       saveBtn.textContent = saving ? "Saving…" : (timedOut && error ? "Retry" : "Save");
