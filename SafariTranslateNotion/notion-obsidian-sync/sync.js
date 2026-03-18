@@ -61,6 +61,39 @@ function getSelectProp(page, propName) {
   return "";
 }
 
+function getMultiSelectProp(page, propName) {
+  const p = getProp(page, propName);
+  if (!p) return [];
+  if (p.type === "multi_select" && Array.isArray(p.multi_select)) {
+    return p.multi_select
+      .map((o) => (o && o.name) ? String(o.name).trim() : "")
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function firstNonEmptyString(values) {
+  for (const v of values) {
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+function firstNonEmptyArray(values) {
+  for (const v of values) {
+    if (Array.isArray(v) && v.length) return v;
+  }
+  return [];
+}
+
+function getSelectFromAny(page, names) {
+  return firstNonEmptyString(names.map((n) => getSelectProp(page, n)));
+}
+
+function getMultiSelectFromAny(page, names) {
+  return firstNonEmptyArray(names.map((n) => getMultiSelectProp(page, n)));
+}
+
 function parseSynonyms(str) {
   const raw = (str || "").trim();
   if (!raw) return [];
@@ -255,7 +288,10 @@ function appendSenseToBody(body, word, senseNumber, sense) {
 
   parts.push(`## Sense ${senseNumber}\n`);
   parts.push(`- **Translation**: ${sense.translation || "—"}\n`);
-  parts.push(`- **Meaning**: ${sense.sense || "—"}\n`);
+  const meaning = (sense.sense && String(sense.sense).trim())
+    ? String(sense.sense).trim()
+    : ((sense.notes && String(sense.notes).trim()) ? String(sense.notes).trim() : "");
+  parts.push(`- **Meaning**: ${meaning || "—"}\n`);
   const synLine = (sense.synonyms && sense.synonyms.length)
     ? sense.synonyms.map((s) => `[[${s}]]`).join(", ")
     : "—";
@@ -320,7 +356,34 @@ function extractSenseFromPage(page) {
   const wordClass = getSelectProp(page, "Word Class");
   const notes = getTextProp(page, "Notes");
   const writerTaxonomyRaw = getTextProp(page, "Writer Taxonomy");
-  const writerTaxonomy = safeJsonParse(writerTaxonomyRaw);
+  let writerTaxonomy = safeJsonParse(writerTaxonomyRaw);
+  if (!writerTaxonomy) {
+    // Back-compat: writer taxonomy stored as separate columns (select/multi-select).
+    // Support a few common naming variants.
+    const narrative_function = getSelectFromAny(page, ["Narrative Function", "narrative_function", "Narrative function"]);
+    const sensory_channel = getMultiSelectFromAny(page, ["Sensory Channel", "sensory_channel", "Sensory channel"]);
+    const psychological_domain = getMultiSelectFromAny(page, ["Psychological Domain", "psychological_domain", "Psychological domain"]);
+    const action_type = getMultiSelectFromAny(page, ["Action Type", "action_type", "Action type"]);
+    const social_function = getMultiSelectFromAny(page, ["Social Function", "social_function", "Social function"]);
+    const atmosphere_tone = getMultiSelectFromAny(page, ["Atmosphere / Tone", "Atmosphere/Tone", "atmosphere_tone", "Atmosphere tone"]);
+    const register = getSelectFromAny(page, ["Register", "register"]);
+    const show_tell = getSelectFromAny(page, ["Show vs Tell Utility", "Show/Tell", "show_tell", "Show vs Tell"]);
+    const hasAny =
+      narrative_function || register || show_tell ||
+      sensory_channel.length || psychological_domain.length || action_type.length || social_function.length || atmosphere_tone.length;
+    if (hasAny) {
+      writerTaxonomy = {
+        narrative_function: narrative_function || "",
+        sensory_channel: sensory_channel || [],
+        psychological_domain: psychological_domain || [],
+        action_type: action_type || [],
+        social_function: social_function || [],
+        atmosphere_tone: atmosphere_tone || [],
+        register: register || "",
+        show_tell: show_tell || "",
+      };
+    }
+  }
 
   return {
     pageId: page && page.id ? String(page.id) : "",
