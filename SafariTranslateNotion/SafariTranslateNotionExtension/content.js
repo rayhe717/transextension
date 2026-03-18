@@ -111,7 +111,7 @@
     }
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && tooltipEl) {
       var payload = buildSavePayload();
-      if (payload) { e.preventDefault(); saveToNotion(payload); }
+      if (payload) { e.preventDefault(); saveToVault(payload); }
     }
   }
 
@@ -204,7 +204,7 @@
     var alreadyEl = root.querySelector(".stn-tooltip-already");
     if (alreadyEl) {
       if (alreadyInNotion) {
-        alreadyEl.textContent = "Already in Notion: " + alreadyInNotion;
+        alreadyEl.textContent = "Already saved: " + alreadyInNotion;
         alreadyEl.style.display = "block";
       } else {
         alreadyEl.textContent = "";
@@ -214,7 +214,7 @@
     var alsoSynonymEl = root.querySelector(".stn-tooltip-also-synonym");
     if (alsoSynonymEl) {
       if (alsoSynonymIn && alsoSynonymIn.length > 0) {
-        alsoSynonymEl.textContent = "Also appears as synonym in: " + alsoSynonymIn.join(", ");
+        alsoSynonymEl.textContent = "Also appears in: " + alsoSynonymIn.join(", ");
         alsoSynonymEl.style.display = "block";
       } else {
         alsoSynonymEl.textContent = "";
@@ -392,7 +392,7 @@
       }
       var payload = buildSavePayload();
       if (!payload) return;
-      saveToNotion(payload);
+      saveToVault(payload);
     });
 
     var writingResultEl = tooltipEl.querySelector(".stn-tooltip-writing-result");
@@ -588,12 +588,12 @@
       .catch(handleTranslateError);
   }
 
-  function saveToNotion(payload) {
+  function saveToVault(payload) {
     var disp = { original: payload.original, translation: payload.translation || (currentPayload && currentPayload.translation), loading: false, error: null, saving: true, saveSuccess: false, saveError: null };
     if (currentPayload && currentPayload.meanings) disp.meanings = currentPayload.meanings;
     renderTooltip(disp);
 
-    browser.runtime.sendMessage({ type: "saveToNotion", payload: payload })
+    browser.runtime.sendMessage({ type: "saveToVault", payload: payload })
       .then(function (response) {
         if (response && response.error) {
           renderTooltip({
