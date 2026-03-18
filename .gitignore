@@ -9,3 +9,8 @@ build/
 
 # Cursor/IDE
 .cursor/
+
+# Local env files / secrets
+.env
+**/.env
+**/.env.*
