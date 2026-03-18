@@ -998,6 +998,7 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
         return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
           type: "vaultExists",
           folder: folder,
+          vaultPath: (opts.obsidianVaultPath && typeof opts.obsidianVaultPath === "string") ? opts.obsidianVaultPath.trim() : "",
           word: (word && typeof word === "string") ? word.trim() : "",
           baseForm: (baseForm && typeof baseForm === "string") ? baseForm.trim() : "",
         }).then(function (r) {
@@ -1031,8 +1032,9 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
           }
           return out;
         }
-        var p1 = term ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, term: term, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
-        var p2 = (base && base !== term) ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, term: base, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
+        var vaultPath = (opts.obsidianVaultPath && typeof opts.obsidianVaultPath === "string") ? opts.obsidianVaultPath.trim() : "";
+        var p1 = term ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, vaultPath: vaultPath, term: term, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
+        var p2 = (base && base !== term) ? browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "vaultFindSynonymIn", folder: folder, vaultPath: vaultPath, term: base, limit: 300 }) : Promise.resolve({ alsoSynonymIn: [] });
         return Promise.all([p1, p2]).then(function (rs) {
           var a = (rs[0] && rs[0].alsoSynonymIn) ? rs[0].alsoSynonymIn : [];
           var b = (rs[1] && rs[1].alsoSynonymIn) ? rs[1].alsoSynonymIn : [];
@@ -1154,6 +1156,7 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
           return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
             type: "vaultWrite",
             folder: folder,
+            vaultPath: (opts.obsidianVaultPath && typeof opts.obsidianVaultPath === "string") ? opts.obsidianVaultPath.trim() : "",
             filename: filename + ".md",
             content: md,
           });

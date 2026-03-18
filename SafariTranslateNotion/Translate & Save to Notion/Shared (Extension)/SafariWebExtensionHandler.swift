@@ -197,6 +197,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private func handleVaultWrite(_ msg: [String: Any], context: NSExtensionContext) {
 #if os(macOS)
         let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
+        let preferredPath = (msg["vaultPath"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let rawFilename = (msg["filename"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let content = msg["content"] as? String ?? ""
         let filename = sanitizeFilename(rawFilename)
@@ -215,6 +216,24 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
         if bookmarkData == nil, let b64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"), let data = Data(base64Encoded: b64) {
             bookmarkData = data
+        }
+        if bookmarkData == nil, !preferredPath.isEmpty {
+            // Fallback when bookmark is unavailable: try direct path.
+            do {
+                let vaultURL = URL(fileURLWithPath: preferredPath, isDirectory: true)
+                let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+                try FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
+                let fileURL = targetDir.appendingPathComponent(filename, isDirectory: false)
+                let data = content.data(using: .utf8) ?? Data()
+                try data.write(to: fileURL, options: [.atomic])
+                respond(with: ["ok": true, "path": fileURL.path], context: context)
+                return
+            } catch {
+                let ns = error as NSError
+                respond(with: ["error": "Vault write failed (path fallback): \(ns.localizedDescription) (domain=\(ns.domain) code=\(ns.code))"], context: context)
+                return
+            }
         }
         guard let bookmarkDataUnwrapped = bookmarkData else {
             respond(with: ["error": "Vault folder not set. Open the container app and choose your vault folder."], context: context)
@@ -252,6 +271,23 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                     defaults.removeObject(forKey: "obsidianVaultPath")
                     defaults.synchronize()
                 }
+                if !preferredPath.isEmpty {
+                    do {
+                        let vaultURL = URL(fileURLWithPath: preferredPath, isDirectory: true)
+                        let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                        let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+                        try FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
+                        let fileURL = targetDir.appendingPathComponent(filename, isDirectory: false)
+                        let data = content.data(using: .utf8) ?? Data()
+                        try data.write(to: fileURL, options: [.atomic])
+                        respond(with: ["ok": true, "path": fileURL.path], context: context)
+                        return
+                    } catch {
+                        let ns2 = error as NSError
+                        respond(with: ["error": "Vault bookmark invalid, and path fallback failed: \(ns2.localizedDescription) (domain=\(ns2.domain) code=\(ns2.code))"], context: context)
+                        return
+                    }
+                }
                 respond(with: ["error": "Vault permission data is invalid (corrupted bookmark). Please open the container app and choose your vault folder again."], context: context)
                 return
             }
@@ -265,6 +301,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private func handleVaultExists(_ msg: [String: Any], context: NSExtensionContext) {
 #if os(macOS)
         let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
+        let preferredPath = (msg["vaultPath"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let word = (msg["word"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let baseForm = (msg["baseForm"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let candidates = [word, baseForm].filter { !$0.isEmpty }
@@ -282,6 +319,22 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
         if bookmarkData == nil, let b64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"), let data = Data(base64Encoded: b64) {
             bookmarkData = data
+        }
+        if bookmarkData == nil, !preferredPath.isEmpty {
+            let vaultURL = URL(fileURLWithPath: preferredPath, isDirectory: true)
+            let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+            for c in candidates {
+                let fn = sanitizeFilename(c) + ".md"
+                if fn == ".md" { continue }
+                let fileURL = targetDir.appendingPathComponent(fn, isDirectory: false)
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    respond(with: ["found": true, "value": c], context: context)
+                    return
+                }
+            }
+            respond(with: ["found": false], context: context)
+            return
         }
         guard let bookmarkData = bookmarkData else {
             respond(with: ["found": false], context: context)
@@ -319,6 +372,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private func handleVaultFindSynonymIn(_ msg: [String: Any], context: NSExtensionContext) {
 #if os(macOS)
         let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
+        let preferredPath = (msg["vaultPath"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let term = (msg["term"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let limit = min(max((msg["limit"] as? Int) ?? 200, 1), 800)
         if term.isEmpty {
@@ -335,6 +389,28 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
         if bookmarkData == nil, let b64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"), let data = Data(base64Encoded: b64) {
             bookmarkData = data
+        }
+        if bookmarkData == nil, !preferredPath.isEmpty {
+            let vaultURL = URL(fileURLWithPath: preferredPath, isDirectory: true)
+            let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+            let needle = "[[\(term)]]"
+            var hits: [String] = []
+            if let files = try? FileManager.default.contentsOfDirectory(at: targetDir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+                for url in files {
+                    if hits.count >= limit { break }
+                    let name = url.lastPathComponent
+                    if !name.lowercased().hasSuffix(".md") { continue }
+                    if name.hasPrefix("_") { continue }
+                    if let data = try? Data(contentsOf: url, options: [.mappedIfSafe]),
+                       let text = String(data: data, encoding: .utf8),
+                       text.contains(needle) {
+                        hits.append(url.deletingPathExtension().lastPathComponent)
+                    }
+                }
+            }
+            respond(with: ["alsoSynonymIn": hits], context: context)
+            return
         }
         guard let bookmarkData = bookmarkData else {
             respond(with: ["alsoSynonymIn": []], context: context)
