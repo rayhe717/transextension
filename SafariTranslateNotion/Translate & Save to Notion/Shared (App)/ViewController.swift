@@ -94,8 +94,7 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
             guard response == .OK, let url = panel.url else { return }
             do {
                 let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
-                let b64 = bookmark.base64EncodedString()
-                self?.writeSharedVaultPermission(bookmarkB64: b64, vaultPath: url.path)
+                self?.writeSharedVaultPermission(bookmarkData: bookmark, vaultPath: url.path)
                 self?.webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + self!.jsString(url.path) + ";")
             } catch {
                 self?.webView.evaluateJavaScript("document.querySelector('.vault-path').innerText = " + self!.jsString("Failed to save vault permission.") + ";")
@@ -103,15 +102,16 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
         }
     }
 
-    private func writeSharedVaultPermission(bookmarkB64: String, vaultPath: String) {
+    private func writeSharedVaultPermission(bookmarkData: Data, vaultPath: String) {
         // Store in App Group so the extension can read it.
         if let defaults = UserDefaults(suiteName: vaultAppGroupId) {
-            defaults.set(bookmarkB64, forKey: "vaultBookmark")
+            defaults.set(bookmarkData, forKey: "vaultBookmarkData")
+            defaults.set(bookmarkData.base64EncodedString(), forKey: "vaultBookmark") // legacy
             defaults.set(vaultPath, forKey: "obsidianVaultPath")
             defaults.synchronize()
         }
         // Also keep a copy in Keychain for debugging/back-compat.
-        keychainWrite(service: optionsKeychainService, account: "vaultBookmark", value: bookmarkB64)
+        keychainWrite(service: optionsKeychainService, account: "vaultBookmark", value: bookmarkData.base64EncodedString())
         keychainWrite(service: optionsKeychainService, account: "obsidianVaultPath", value: vaultPath)
     }
 
