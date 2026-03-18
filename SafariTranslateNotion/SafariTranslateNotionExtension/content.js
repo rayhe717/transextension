@@ -204,7 +204,7 @@
     var alreadyEl = root.querySelector(".stn-tooltip-already");
     if (alreadyEl) {
       if (alreadyInNotion) {
-        alreadyEl.textContent = "Already saved: " + alreadyInNotion;
+        alreadyEl.textContent = "Already in Vault: " + alreadyInNotion;
         alreadyEl.style.display = "block";
       } else {
         alreadyEl.textContent = "";

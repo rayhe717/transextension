@@ -118,7 +118,7 @@
           var r = results[0].status === "fulfilled" ? results[0].value : null;
           var r2 = results[1].status === "fulfilled" ? results[1].value : null;
           if (alreadyInNotionEl && r && r.found && r.value) {
-            alreadyInNotionEl.textContent = "Already saved: " + r.value;
+            alreadyInNotionEl.textContent = "Already in Vault: " + r.value;
             alreadyInNotionEl.style.display = "block";
           }
           if (r2 && r2.alsoSynonymIn && Array.isArray(r2.alsoSynonymIn) && r2.alsoSynonymIn.length > 0) {
