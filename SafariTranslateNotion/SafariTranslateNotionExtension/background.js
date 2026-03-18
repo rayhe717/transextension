@@ -12,9 +12,94 @@ function getStoredOptions() {
     deepseekApiKey: "",
     notionToken: "",
     notionDatabaseId: "",
+    obsidianVaultPath: "",
+    obsidianVocabFolder: "vocab",
     targetLanguage: DEFAULT_TARGET_LANG,
     maxSelectionLength: 120,
   });
+}
+
+function sanitizeFilename(name) {
+  if (!name || typeof name !== "string") return "";
+  return name
+    .trim()
+    .replace(/[\/\\]/g, "-")
+    .replace(/[:*?"<>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+}
+
+function yamlString(value) {
+  var s = (value == null) ? "" : String(value);
+  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  s = s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  return "\"" + s + "\"";
+}
+
+function buildWordMarkdownVault(payload) {
+  var word = (payload.original || "").trim();
+  var baseForm = (payload.base_form || payload.original || "").trim();
+  var meanings = Array.isArray(payload.meanings) && payload.meanings.length
+    ? payload.meanings.map(function (m) {
+        return {
+          translation: (m && typeof m.translation === "string") ? m.translation.trim() : "",
+          sense: (m && typeof m.sense === "string") ? m.sense.trim() : "",
+          synonyms: Array.isArray(m && m.synonyms) ? m.synonyms.filter(function (s) { return typeof s === "string"; }).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 40) : [],
+        };
+      })
+    : [{
+        translation: (payload.translation || "").trim(),
+        sense: (payload.sense || "").trim(),
+        synonyms: Array.isArray(payload.synonyms) ? payload.synonyms : [],
+      }];
+
+  var now = new Date().toISOString();
+  var lines = [
+    "---",
+    "word: " + yamlString(word),
+    "base_form: " + yamlString(baseForm),
+    "created: " + yamlString(now),
+    "tags:",
+    "  - vocab",
+  ];
+
+  if (meanings.length <= 1) {
+    var m0 = meanings[0] || { translation: "", sense: "", synonyms: [] };
+    lines.push("translation: " + yamlString(m0.translation || ""));
+    lines.push("sense: " + yamlString(m0.sense || ""));
+    lines.push("synonyms:");
+    if (m0.synonyms && m0.synonyms.length) {
+      m0.synonyms.forEach(function (s) { lines.push("  - " + yamlString("[[" + s + "]]")); });
+    } else {
+      lines.push("  - \"\"");
+    }
+  } else {
+    lines.push("translations:");
+    meanings.forEach(function (m) { lines.push("  - " + yamlString(m.translation || "")); });
+    lines.push("senses:");
+    meanings.forEach(function (m) { lines.push("  - " + yamlString(m.sense || "")); });
+    meanings.forEach(function (m, i) {
+      lines.push("synonyms_" + (i + 1) + ":");
+      if (m.synonyms && m.synonyms.length) {
+        m.synonyms.forEach(function (s) { lines.push("  - " + yamlString("[[" + s + "]]")); });
+      } else {
+        lines.push("  - \"\"");
+      }
+    });
+  }
+
+  lines.push("---", "", "# " + word, "");
+  meanings.forEach(function (m, i) {
+    var n = i + 1;
+    lines.push("## Sense " + n, "");
+    lines.push("- **Translation**: " + (m.translation || "—"));
+    lines.push("- **Meaning**: " + (m.sense || "—"));
+    lines.push("- **Synonyms**: " + (m.synonyms && m.synonyms.length ? m.synonyms.map(function (s) { return "[[" + s + "]]"; }).join(", ") : "—"));
+    lines.push("");
+  });
+  lines.push("");
+  return lines.join("\n");
 }
 
 function formatMeaningsAsTranslation(meanings) {
@@ -876,6 +961,37 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
           msg = "Notion network error: " + msg + ". Check that api.notion.com is reachable from your network, and verify API secret + Database ID in Options.";
         }
         reply({ error: msg });
+      });
+    return true;
+  }
+
+  if (message.type === "saveToVault") {
+    var payload = message.payload;
+    if (!payload) {
+      reply({ error: "Missing payload" });
+      return false;
+    }
+    getStoredOptions()
+      .then(function (opts) {
+        var folder = (opts.obsidianVocabFolder && typeof opts.obsidianVocabFolder === "string") ? opts.obsidianVocabFolder.trim() : "vocab";
+        if (!folder) folder = "vocab";
+        var word = (payload.original || "").trim();
+        var filename = sanitizeFilename(word);
+        if (!filename) throw new Error("Word is empty. Translate first.");
+        var md = buildWordMarkdownVault(payload);
+        return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+          type: "vaultWrite",
+          folder: folder,
+          filename: filename + ".md",
+          content: md,
+        });
+      })
+      .then(function (res) {
+        if (res && res.error) throw new Error(res.error);
+        reply({ ok: true, count: 1 });
+      })
+      .catch(function (err) {
+        reply({ error: (err && err.message) ? err.message : "Vault save failed" });
       });
     return true;
   }

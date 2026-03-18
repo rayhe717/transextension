@@ -162,7 +162,7 @@
     saveBtn.disabled = true;
     setStatus("Saving...");
 
-    browser.runtime.sendMessage({ type: "saveToNotion", payload: payload })
+    browser.runtime.sendMessage({ type: "saveToVault", payload: payload })
       .then(function (response) {
         translateBtn.disabled = false;
         saveBtn.disabled = false;
@@ -171,7 +171,7 @@
           return;
         }
         var count = (response && response.count) ? response.count : 1;
-        setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Notion.", "success");
+        setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Vault.", "success");
         var alsoIn = response && response.alsoSynonymIn && response.alsoSynonymIn.length > 0 ? response.alsoSynonymIn : null;
         showAlsoSynonymIn(alsoIn);
       })

@@ -3,7 +3,7 @@ import Security
 import os.log
 
 private let kOptionsKeychainService = "com.yourCompany.Translate-Save-to-Notion.options"
-private let kOptionsKeys = ["deepseekApiKey", "notionToken", "notionDatabaseId"]
+private let kOptionsKeys = ["deepseekApiKey", "notionToken", "notionDatabaseId", "obsidianVaultPath", "vaultBookmark"]
 
 class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
@@ -34,6 +34,14 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             let opts = msg["options"] as? [String: Any] ?? [:]
             saveOptionsToKeychain(opts)
             respond(with: ["ok": true], context: context)
+            return
+        }
+        if type == "pickVaultFolder" {
+            pickVaultFolder(context: context)
+            return
+        }
+        if type == "vaultWrite" {
+            handleVaultWrite(msg, context: context)
             return
         }
 
@@ -125,6 +133,72 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             ], context: context)
         }
         task.resume()
+    }
+
+    private func pickVaultFolder(context: NSExtensionContext) {
+#if os(macOS)
+        DispatchQueue.main.async { [weak self] in
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.prompt = "Choose Vault"
+            panel.message = "Choose your Obsidian vault folder."
+            let response = panel.runModal()
+            guard response == .OK, let url = panel.url else {
+                self?.respond(with: ["error": "No folder selected."], context: context)
+                return
+            }
+            do {
+                let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+                let b64 = bookmark.base64EncodedString()
+                self?.keychainWrite(service: kOptionsKeychainService, account: "vaultBookmark", value: b64)
+                self?.keychainWrite(service: kOptionsKeychainService, account: "obsidianVaultPath", value: url.path)
+                self?.respond(with: ["ok": true, "vaultPath": url.path], context: context)
+            } catch {
+                self?.respond(with: ["error": "Failed to store vault permission: \(error.localizedDescription)"], context: context)
+            }
+        }
+#else
+        respond(with: ["error": "Vault picker is only supported on macOS."], context: context)
+#endif
+    }
+
+    private func handleVaultWrite(_ msg: [String: Any], context: NSExtensionContext) {
+#if os(macOS)
+        let folderRel = (msg["folder"] as? String ?? "vocab").trimmingCharacters(in: .whitespacesAndNewlines)
+        let filename = (msg["filename"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let content = msg["content"] as? String ?? ""
+        guard !filename.isEmpty else {
+            respond(with: ["error": "Missing filename"], context: context)
+            return
+        }
+        guard let bookmarkB64 = keychainRead(service: kOptionsKeychainService, account: "vaultBookmark"),
+              let bookmarkData = Data(base64Encoded: bookmarkB64) else {
+            respond(with: ["error": "Vault folder not set. Open extension Options and choose your vault."], context: context)
+            return
+        }
+        var stale = false
+        do {
+            let vaultURL = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+            guard vaultURL.startAccessingSecurityScopedResource() else {
+                respond(with: ["error": "No permission to access the vault folder. Choose it again in Options."], context: context)
+                return
+            }
+            defer { vaultURL.stopAccessingSecurityScopedResource() }
+
+            let safeFolder = folderRel.replacingOccurrences(of: "..", with: "").replacingOccurrences(of: "\\", with: "/").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let targetDir = safeFolder.isEmpty ? vaultURL : vaultURL.appendingPathComponent(safeFolder, isDirectory: true)
+            try FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
+            let fileURL = targetDir.appendingPathComponent(filename, isDirectory: false)
+            try content.write(to: fileURL, atomically: true, encoding: .utf8)
+            respond(with: ["ok": true, "path": fileURL.path], context: context)
+        } catch {
+            respond(with: ["error": "Vault write failed: \(error.localizedDescription)"], context: context)
+        }
+#else
+        respond(with: ["error": "Vault write is only supported on macOS."], context: context)
+#endif
     }
 
     private func respond(with data: [String: Any], context: NSExtensionContext) {
