@@ -421,6 +421,22 @@ function applyWriterTaxonomyIfMissing(fm, tax) {
   return out;
 }
 
+function ensureTagsForNarrativeFunction(fm) {
+  const out = { ...(fm || {}) };
+  const func = (out.writer_narrative_function && typeof out.writer_narrative_function === "string")
+    ? out.writer_narrative_function.trim()
+    : "";
+  if (!func) return out;
+  const tags = Array.isArray(out.tags) ? out.tags.slice() : [];
+  const want = [`func/${func}`];
+  // Keep existing tags; ensure `func/<...>` exists.
+  for (const t of want) {
+    if (!tags.includes(t)) tags.push(t);
+  }
+  out.tags = tags;
+  return out;
+}
+
 async function upsertSenseNote({ vaultPath, vocabFolder, sense }) {
   const key = normalizeKey(sense.baseForm) || normalizeKey(sense.word);
   const filename = sanitizeFilename(key || sense.baseForm || sense.word);
@@ -451,6 +467,7 @@ async function upsertSenseNote({ vaultPath, vocabFolder, sense }) {
   }
 
   fm = applyWriterTaxonomyIfMissing(fm, sense.writerTaxonomy);
+  fm = ensureTagsForNarrativeFunction(fm);
 
   const beforeCount = getSenseCountFromFrontmatter(fm);
   fm = appendSenseToFrontmatter(fm, sense);
