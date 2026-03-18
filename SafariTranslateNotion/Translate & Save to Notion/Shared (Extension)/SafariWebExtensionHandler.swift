@@ -40,7 +40,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             return
         }
         if type == "pickVaultFolder" {
-            pickVaultFolder(context: context)
+            openHostApp()
+            respond(with: ["error": "Vault picker opened in the app. Choose your vault folder there, then return to Options."], context: context)
             return
         }
         if type == "vaultWrite" {
@@ -168,6 +169,15 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         respond(with: ["error": "Vault picker is only supported on macOS."], context: context)
 #endif
     }
+
+#if os(macOS)
+    private func openHostApp() {
+        NSWorkspace.shared.launchApplication(withBundleIdentifier: "com.yourCompany.Translate---Save-to-Notion",
+                                             options: [.default],
+                                             additionalEventParamDescriptor: nil,
+                                             launchIdentifier: nil)
+    }
+#endif
 
     private func handleVaultWrite(_ msg: [String: Any], context: NSExtensionContext) {
 #if os(macOS)

@@ -22,3 +22,10 @@ function openPreferences() {
 }
 
 document.querySelector("button.open-preferences").addEventListener("click", openPreferences);
+
+function pickVault() {
+    webkit.messageHandlers.controller.postMessage("pick-vault");
+}
+
+var pickBtn = document.querySelector("button.pick-vault");
+if (pickBtn) pickBtn.addEventListener("click", pickVault);

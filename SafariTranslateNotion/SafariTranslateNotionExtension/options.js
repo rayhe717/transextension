@@ -93,7 +93,8 @@
     if (btn) btn.disabled = true;
     browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "pickVaultFolder" })
       .then(function (res) {
-        if (!res || res.error) throw new Error((res && res.error) ? res.error : "Failed to choose vault folder.");
+        if (!res) throw new Error("No response. Try again.");
+        if (res.error) throw new Error(res.error);
         var vaultPath = (res.vaultPath || "").trim();
         if (!vaultPath) throw new Error("No vault folder returned.");
         var vaultEl = document.getElementById("obsidianVaultPath");
@@ -109,7 +110,30 @@
         }).catch(function () {});
       })
       .then(function () { showStatus("Vault folder saved.", false); })
-      .catch(function (e) { showStatus((e && e.message) ? e.message : "Failed to choose vault folder.", true); })
+      .catch(function (e) {
+        showStatus((e && e.message) ? e.message : "Failed to choose vault folder.", true);
+        // If the native host opened the container app to pick the vault, poll keychain-backed options for a bit.
+        var tries = 0;
+        var timer = setInterval(function () {
+          tries += 1;
+          browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", { type: "getPersistedOptions" })
+            .then(function (o) {
+              var p = o && o.obsidianVaultPath ? String(o.obsidianVaultPath).trim() : "";
+              if (p) {
+                var vaultEl = document.getElementById("obsidianVaultPath");
+                if (vaultEl) vaultEl.value = p;
+                browser.storage.local.get(DEFAULTS).then(function (items) {
+                  items.obsidianVaultPath = p;
+                  return browser.storage.local.set(items);
+                }).catch(function () {});
+                showStatus("Vault folder saved.", false);
+                clearInterval(timer);
+              }
+            })
+            .catch(function () {});
+          if (tries >= 20) clearInterval(timer);
+        }, 500);
+      })
       .then(function () { if (btn) btn.disabled = false; }, function () { if (btn) btn.disabled = false; });
   }
 
