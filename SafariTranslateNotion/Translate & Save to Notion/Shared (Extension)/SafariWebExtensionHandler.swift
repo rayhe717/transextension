@@ -216,6 +216,13 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             respond(with: ["ok": true, "path": fileURL.path], context: context)
         } catch {
             let ns = error as NSError
+            if ns.domain == NSCocoaErrorDomain && ns.code == 259 {
+                // The stored bookmark data is likely corrupt/unreadable; clear it so the user can re-pick.
+                keychainDelete(service: kOptionsKeychainService, account: "vaultBookmark")
+                keychainDelete(service: kOptionsKeychainService, account: "obsidianVaultPath")
+                respond(with: ["error": "Vault permission data is invalid (corrupted bookmark). Please open the container app and choose your vault folder again."], context: context)
+                return
+            }
             respond(with: ["error": "Vault write failed: \(ns.localizedDescription) (domain=\(ns.domain) code=\(ns.code))"], context: context)
         }
 #else
@@ -224,6 +231,15 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     }
 
 #if os(macOS)
+    private func keychainDelete(service: String, account: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
     private func sanitizeFilename(_ name: String) -> String {
         var s = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.isEmpty { return "" }
