@@ -365,9 +365,10 @@ function extractSenseFromPage(page) {
     const psychological_domain = getMultiSelectFromAny(page, ["Psychological Domain", "psychological_domain", "Psychological domain"]);
     const action_type = getMultiSelectFromAny(page, ["Action Type", "action_type", "Action type"]);
     const social_function = getMultiSelectFromAny(page, ["Social Function", "social_function", "Social function"]);
-    const atmosphere_tone = getMultiSelectFromAny(page, ["Atmosphere / Tone", "Atmosphere/Tone", "atmosphere_tone", "Atmosphere tone"]);
+    // SafariTranslateNotionExtension/background.js writes: "Atmosphere Tone" and "Show Tell"
+    const atmosphere_tone = getMultiSelectFromAny(page, ["Atmosphere Tone", "Atmosphere / Tone", "Atmosphere/Tone", "atmosphere_tone", "Atmosphere tone"]);
     const register = getSelectFromAny(page, ["Register", "register"]);
-    const show_tell = getSelectFromAny(page, ["Show vs Tell Utility", "Show/Tell", "show_tell", "Show vs Tell"]);
+    const show_tell = getSelectFromAny(page, ["Show Tell", "Show vs Tell Utility", "Show/Tell", "show_tell", "Show vs Tell"]);
     const hasAny =
       narrative_function || register || show_tell ||
       sensory_channel.length || psychological_domain.length || action_type.length || social_function.length || atmosphere_tone.length;
