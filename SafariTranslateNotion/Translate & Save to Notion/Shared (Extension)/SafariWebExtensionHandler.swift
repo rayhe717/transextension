@@ -1,6 +1,9 @@
 import SafariServices
 import Security
 import os.log
+#if os(macOS)
+import AppKit
+#endif
 
 private let kOptionsKeychainService = "com.yourCompany.Translate-Save-to-Notion.options"
 private let kOptionsKeys = ["deepseekApiKey", "notionToken", "notionDatabaseId", "obsidianVaultPath", "vaultBookmark"]

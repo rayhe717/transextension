@@ -110,7 +110,7 @@
       })
       .then(function () { showStatus("Vault folder saved.", false); })
       .catch(function (e) { showStatus((e && e.message) ? e.message : "Failed to choose vault folder.", true); })
-      .finally(function () { if (btn) btn.disabled = false; });
+      .then(function () { if (btn) btn.disabled = false; }, function () { if (btn) btn.disabled = false; });
   }
 
   document.addEventListener("DOMContentLoaded", load);
