@@ -37,6 +37,11 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             return
         }
 
+        if type == "saveFileToDownloads" {
+            handleSaveFileToDownloads(msg, context: context)
+            return
+        }
+
         respond(with: ["echo": msg], context: context)
     }
 
@@ -84,6 +89,47 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         var addQuery = query
         addQuery[kSecValueData as String] = data
         SecItemAdd(addQuery as CFDictionary, nil)
+    }
+
+    /// Writes UTF-8 text under the user Downloads folder (e.g. `ao3/Title - 123.md`).
+    /// Safari Web Extension `downloads.download` with blob URLs is unreliable; native save works on macOS.
+    private func handleSaveFileToDownloads(_ msg: [String: Any], context: NSExtensionContext) {
+        #if os(iOS)
+        respond(with: ["error": "saveFileToDownloads is macOS-only; use the in-page save button."], context: context)
+        return
+        #else
+        guard let relativePath = msg["relativePath"] as? String,
+              let utf8 = msg["content"] as? String else {
+            respond(with: ["error": "Missing relativePath or content"], context: context)
+            return
+        }
+        let trimmed = relativePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !trimmed.isEmpty, !trimmed.contains("..") else {
+            respond(with: ["error": "Invalid path"], context: context)
+            return
+        }
+        guard let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+            respond(with: ["error": "Could not resolve Downloads folder"], context: context)
+            return
+        }
+        let parts = trimmed.split(separator: "/").map(String.init).filter { !$0.isEmpty }
+        guard !parts.isEmpty else {
+            respond(with: ["error": "Invalid path"], context: context)
+            return
+        }
+        var fileURL = downloads
+        for p in parts {
+            fileURL = fileURL.appendingPathComponent(p)
+        }
+        let parent = fileURL.deletingLastPathComponent()
+        do {
+            try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+            try utf8.write(to: fileURL, atomically: true, encoding: .utf8)
+            respond(with: ["ok": true, "path": fileURL.path], context: context)
+        } catch {
+            respond(with: ["error": error.localizedDescription], context: context)
+        }
+        #endif
     }
 
     private func handleApiRequest(_ msg: [String: Any], context: NSExtensionContext) {

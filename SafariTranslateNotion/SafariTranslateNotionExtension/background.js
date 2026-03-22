@@ -746,9 +746,133 @@ function writingSupportWithDeepSeek(text, action, vocabLines, apiKey) {
   });
 }
 
+function sanitizeAo3DownloadBasename(name) {
+  return String(name || "ao3-work")
+    .replace(/[\/\\\:\?\*\|\"\<\>]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200);
+}
+
+function extApi() {
+  return typeof browser !== "undefined" ? browser : typeof chrome !== "undefined" ? chrome : null;
+}
+
+function ao3Notify(title, message) {
+  var api = extApi();
+  if (!api || !api.notifications || !api.notifications.create) return;
+  try {
+    api.notifications.create({
+      type: "basic",
+      iconUrl: api.runtime.getURL("images/icon-48.png"),
+      title: title,
+      message: message,
+    });
+  } catch (_) {}
+}
+
+function isAo3WorkUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  return /^https?:\/\/archiveofourown\.org\/works\/\d+/i.test(url);
+}
+
+function saveAo3MarkdownAfterExport(tab, md, base) {
+  var api = extApi();
+  var relPath = "ao3/" + base + ".md";
+  return browser.runtime
+    .sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+      type: "saveFileToDownloads",
+      relativePath: relPath,
+      content: md,
+    })
+    .then(function (res) {
+      if (res && res.ok) {
+        ao3Notify("AO3 export", "Saved: " + (res.path || relPath));
+        return;
+      }
+      if (res && res.error) throw new Error(res.error);
+      throw new Error("Native save failed");
+    })
+    .catch(function () {
+      return api.tabs.sendMessage(tab.id, {
+        type: "ao3AnchorDownload",
+        markdown: md,
+        filename: base + ".md",
+      });
+    })
+    .then(function (anchorRes) {
+      if (anchorRes === undefined) {
+        return;
+      }
+      if (anchorRes && anchorRes.error) {
+        throw new Error(anchorRes.error);
+      }
+      if (anchorRes && anchorRes.ok) {
+        ao3Notify("AO3 export", "Download started: " + base + ".md (check Downloads).");
+        return;
+      }
+      throw new Error("Save failed");
+    });
+}
+
+function runAo3ExportForTab(tab) {
+  var api = extApi();
+  if (!api || !tab || tab.id == null) {
+    ao3Notify("AO3 export", "No active tab.");
+    return Promise.reject(new Error("No active tab."));
+  }
+  var url = tab.url || "";
+  if (!isAo3WorkUrl(url)) {
+    ao3Notify("AO3 export", "Open a work page first (URL must contain /works/123…).");
+    return Promise.reject(new Error("Not an AO3 work page."));
+  }
+  return api.tabs
+    .sendMessage(tab.id, { type: "ao3ExportStart" })
+    .then(function (res) {
+      if (!res) throw new Error("No response from page. Reload the AO3 tab and try again.");
+      if (res.error) throw new Error(res.error);
+      var md = res.markdown;
+      if (!md || typeof md !== "string") throw new Error("Empty export.");
+      var base = sanitizeAo3DownloadBasename(res.basename || "ao3-work");
+      return saveAo3MarkdownAfterExport(tab, md, base);
+    })
+    .catch(function (err) {
+      var msg = err && err.message ? err.message : String(err);
+      if (/Receiving end does not exist|Could not establish connection/i.test(msg)) {
+        msg = "Page not ready. Reload the AO3 tab, then try again.";
+      }
+      console.error("AO3 export:", msg);
+      ao3Notify("AO3 export failed", msg);
+      return Promise.reject(err);
+    });
+}
+
 browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   function reply(value) {
     try { sendResponse(value); } catch (_) {}
+  }
+
+  if (message.type === "ao3ExportTrigger") {
+    var finish = function (tab) {
+      runAo3ExportForTab(tab).then(
+        function () {
+          reply({ ok: true });
+        },
+        function () {
+          reply({ ok: false });
+        }
+      );
+    };
+    if (sender.tab) {
+      finish(sender.tab);
+    } else {
+      extApi()
+        .tabs.query({ active: true, currentWindow: true })
+        .then(function (tabs) {
+          finish(tabs && tabs[0]);
+        });
+    }
+    return true;
   }
 
   if (message.type === "translate") {

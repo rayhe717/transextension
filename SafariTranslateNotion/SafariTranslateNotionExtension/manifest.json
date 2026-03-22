@@ -2,12 +2,14 @@
   "manifest_version": 3,
   "name": "Translate & Save to Notion",
   "version": "1.0.0",
-  "description": "Translate selected text with DeepSeek and save vocabulary to Notion.",
+  "description": "Translate selected text with DeepSeek, save vocabulary to Notion, and export AO3 works to Obsidian markdown.",
   "permissions": [
     "storage",
     "activeTab",
+    "tabs",
     "scripting",
-    "nativeMessaging"
+    "nativeMessaging",
+    "notifications"
   ],
   "host_permissions": [
     "https://api.deepseek.com/*",
@@ -24,7 +26,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["ao3-export.js", "content.js"],
       "css": ["content.css"],
       "run_at": "document_idle",
       "all_frames": false

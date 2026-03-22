@@ -23,8 +23,10 @@
   let tooltipEl = null;
   let backdropEl = null;
   let currentPayload = null;
-  let lastTooltipShowTime = 0;
-  var TOOLTIP_DEBOUNCE_MS = 400;
+  /** Suppress only duplicate open (same text within a few ms) — avoids double mouseup; does not block new selections. */
+  let lastTooltipDedupeKey = "";
+  let lastTooltipDedupeAt = 0;
+  const TOOLTIP_DEDUPE_MS = 60;
   let suppressMouseUpUntil = 0;
 
   function messageErrorFriendly(err) {
@@ -81,7 +83,11 @@
     backdropEl = null;
     tooltipEl = null;
     currentPayload = null;
-    lastTooltipShowTime = 0;
+  }
+
+  function resetTooltipDedupe() {
+    lastTooltipDedupeKey = "";
+    lastTooltipDedupeAt = 0;
   }
 
   function buildSavePayload() {
@@ -114,6 +120,7 @@
 
   function onKeyDown(e) {
     if (e.key === "Escape") {
+      resetTooltipDedupe();
       removeTooltip();
       document.removeEventListener("keydown", onKeyDown);
       return;
@@ -267,8 +274,10 @@
 
   function showTooltip(rect, original, context) {
     var now = Date.now();
-    if (now - lastTooltipShowTime < TOOLTIP_DEBOUNCE_MS) return;
-    lastTooltipShowTime = now;
+    var dedupeKey = (original || "") + "\0" + Math.round(rect.left) + "," + Math.round(rect.top);
+    if (dedupeKey === lastTooltipDedupeKey && now - lastTooltipDedupeAt < TOOLTIP_DEDUPE_MS) return;
+    lastTooltipDedupeKey = dedupeKey;
+    lastTooltipDedupeAt = now;
     removeTooltip();
 
     backdropEl = document.createElement("div");
@@ -278,6 +287,7 @@
     backdropEl.addEventListener("mousedown", function () { suppressMouseUpUntil = Date.now() + 500; }, true);
     backdropEl.addEventListener("click", function () {
       suppressMouseUpUntil = Date.now() + 500;
+      resetTooltipDedupe();
       removeTooltip();
       document.removeEventListener("keydown", onKeyDown);
     });
@@ -335,6 +345,7 @@
 
     closeBtn.addEventListener("click", function () {
       suppressMouseUpUntil = Date.now() + 500;
+      resetTooltipDedupe();
       removeTooltip();
       document.removeEventListener("keydown", onKeyDown);
     });
@@ -457,27 +468,6 @@
     document.body.appendChild(tooltipEl);
     document.addEventListener("keydown", onKeyDown);
 
-    tooltipEl.style.position = "absolute";
-    tooltipEl.style.top = rect.bottom + 8 + window.scrollY + "px";
-    tooltipEl.style.left = rect.left + window.scrollX + "px";
-
-    positionTooltip(rect);
-    void tooltipEl.offsetHeight;
-
-    renderTooltip({
-      original,
-      translation: null,
-      loading: true,
-      error: null,
-      saving: false,
-      saveSuccess: false,
-      saveError: null,
-    });
-    requestAnimationFrame(function () {
-      positionTooltip(rect);
-      void tooltipEl.offsetHeight;
-    });
-
     currentPayload = { original, translation: null, synonyms: [], context: context || null, sourceUrl: window.location.href, pageTitle: document.title || "" };
 
     var responseReceived = false;
@@ -597,6 +587,27 @@
     browser.runtime.sendMessage({ type: "translate", text: original })
       .then(handleTranslateResponse)
       .catch(handleTranslateError);
+
+    tooltipEl.style.position = "absolute";
+    tooltipEl.style.top = rect.bottom + 8 + window.scrollY + "px";
+    tooltipEl.style.left = rect.left + window.scrollX + "px";
+
+    positionTooltip(rect);
+    void tooltipEl.offsetHeight;
+
+    renderTooltip({
+      original,
+      translation: null,
+      loading: true,
+      error: null,
+      saving: false,
+      saveSuccess: false,
+      saveError: null,
+    });
+    requestAnimationFrame(function () {
+      positionTooltip(rect);
+      void tooltipEl.offsetHeight;
+    });
   }
 
   function saveToNotion(payload) {
@@ -622,7 +633,10 @@
           alsoSynonymIn: undefined,
         });
         flushTooltipPaint();
-        setTimeout(removeTooltip, 1500);
+        setTimeout(function () {
+          resetTooltipDedupe();
+          removeTooltip();
+        }, 1500);
       })
       .catch(function (err) {
         renderTooltip({
@@ -661,9 +675,9 @@
     if (!rect) return;
     var sel = window.getSelection();
     var context = sel && sel.rangeCount ? tryCaptureContext(sel) : null;
-    requestAnimationFrame(function () {
+    setTimeout(function () {
       showTooltip(rect, text, context);
-    });
+    }, 0);
   }
 
   document.addEventListener("mouseup", onMouseUp, false);

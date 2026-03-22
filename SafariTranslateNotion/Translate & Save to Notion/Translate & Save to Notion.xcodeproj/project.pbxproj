@@ -35,6 +35,7 @@
 		1B211A012F4EECBA00A18B2C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FA2F4EECBA00A18B2C /* manifest.json */; };
 		1B211A022F4EECBA00A18B2C /* options.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FB2F4EECBA00A18B2C /* options.html */; };
 		1B211A032F4EECBA00A18B2C /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FC2F4EECBA00A18B2C /* content.js */; };
+		1B211A0C2F4EECBA00A18B2C /* ao3-export.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000162F4EECBA00A18B2C /* ao3-export.js */; };
 		1B211A042F4EECBA00A18B2C /* options.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FD2F4EECBA00A18B2C /* options.css */; };
 		1B211A052F4EECBA00A18B2C /* content.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F72F4EECBA00A18B2C /* content.css */; };
 		1B211A062F4EECBA00A18B2C /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119F82F4EECBA00A18B2C /* background.js */; };
@@ -42,6 +43,7 @@
 		1B211A082F4EECBA00A18B2C /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FA2F4EECBA00A18B2C /* manifest.json */; };
 		1B211A092F4EECBA00A18B2C /* options.html in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FB2F4EECBA00A18B2C /* options.html */; };
 		1B211A0A2F4EECBA00A18B2C /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FC2F4EECBA00A18B2C /* content.js */; };
+		1B211A0D2F4EECBA00A18B2C /* ao3-export.js in Resources */ = {isa = PBXBuildFile; fileRef = AA0000162F4EECBA00A18B2C /* ao3-export.js */; };
 		1B211A0B2F4EECBA00A18B2C /* options.css in Resources */ = {isa = PBXBuildFile; fileRef = 1B2119FD2F4EECBA00A18B2C /* options.css */; };
 		AA0000022F4EECBA00A18B2C /* images in Resources */ = {isa = PBXBuildFile; fileRef = AA0000012F4EECBA00A18B2C /* images */; };
 		AA0000032F4EECBA00A18B2C /* images in Resources */ = {isa = PBXBuildFile; fileRef = AA0000012F4EECBA00A18B2C /* images */; };
@@ -129,6 +131,7 @@
 		1B2119FA2F4EECBA00A18B2C /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../SafariTranslateNotionExtension/manifest.json; sourceTree = "<group>"; };
 		1B2119FB2F4EECBA00A18B2C /* options.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = options.html; path = ../../SafariTranslateNotionExtension/options.html; sourceTree = "<group>"; };
 		1B2119FC2F4EECBA00A18B2C /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../SafariTranslateNotionExtension/content.js; sourceTree = "<group>"; };
+		AA0000162F4EECBA00A18B2C /* ao3-export.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = ao3-export.js; path = ../../SafariTranslateNotionExtension/ao3-export.js; sourceTree = "<group>"; };
 		1B2119FD2F4EECBA00A18B2C /* options.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = options.css; path = ../../SafariTranslateNotionExtension/options.css; sourceTree = "<group>"; };
 		AA0000012F4EECBA00A18B2C /* images */ = {isa = PBXFileReference; lastKnownFileType = folder; name = images; path = ../../SafariTranslateNotionExtension/images; sourceTree = "<group>"; };
 		AA0000072F4EECBA00A18B2C /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = ../../SafariTranslateNotionExtension/popup.html; sourceTree = "<group>"; };
@@ -272,6 +275,7 @@
 				1B2119FA2F4EECBA00A18B2C /* manifest.json */,
 				1B2119FB2F4EECBA00A18B2C /* options.html */,
 				1B2119FC2F4EECBA00A18B2C /* content.js */,
+				AA0000162F4EECBA00A18B2C /* ao3-export.js */,
 				1B2119FD2F4EECBA00A18B2C /* options.css */,
 				AA0000072F4EECBA00A18B2C /* popup.html */,
 				AA0000082F4EECBA00A18B2C /* popup.css */,
@@ -447,6 +451,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1B211A0A2F4EECBA00A18B2C /* content.js in Resources */,
+				1B211A0D2F4EECBA00A18B2C /* ao3-export.js in Resources */,
 				1B211A082F4EECBA00A18B2C /* manifest.json in Resources */,
 				1B211A062F4EECBA00A18B2C /* background.js in Resources */,
 				1B211A092F4EECBA00A18B2C /* options.html in Resources */,
@@ -468,6 +473,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1B211A032F4EECBA00A18B2C /* content.js in Resources */,
+				1B211A0C2F4EECBA00A18B2C /* ao3-export.js in Resources */,
 				1B211A012F4EECBA00A18B2C /* manifest.json in Resources */,
 				1B2119FF2F4EECBA00A18B2C /* background.js in Resources */,
 				1B211A022F4EECBA00A18B2C /* options.html in Resources */,
