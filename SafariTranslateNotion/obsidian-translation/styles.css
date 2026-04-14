@@ -1,0 +1,186 @@
+.ot-tooltip-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
+}
+
+.ot-tooltip {
+  position: absolute;
+  z-index: 9999;
+  width: min(316px, calc(100vw - 20px));
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ot-original {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1f2937;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+}
+
+.ot-close {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.ot-close:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.ot-translation {
+  margin: 0;
+  padding: 12px 12px 0 12px;
+  min-height: 1.3em;
+  font-size: 12px;
+  color: #1f2937;
+  white-space: pre-wrap;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.ot-loading {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.ot-meanings {
+  padding: 0 12px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.ot-meaning-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.ot-meaning-row input[type=checkbox] {
+  margin: 0;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ot-meaning-label {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.ot-notes {
+  margin: 8px 12px 0 12px;
+  width: calc(100% - 24px);
+  max-height: 120px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  min-height: 44px;
+}
+
+.ot-notes:focus {
+  border-color: #83bae9;
+  box-shadow: 0 0 0 2px rgba(131, 186, 233, 0.25);
+}
+
+.ot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 0 12px 12px 12px;
+}
+
+.ot-save {
+  border: none;
+  background: #83bae9;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.ot-save:hover:not(:disabled) {
+  background: #6ba3dc;
+}
+
+.ot-save:disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ot-status {
+  font-size: 10px;
+  color: #6b7280;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ot-error {
+  color: #b91c1c;
+}
+
+.ot-success {
+  color: #047857;
+}

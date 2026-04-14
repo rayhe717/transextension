@@ -6,7 +6,9 @@
   "use strict";
 
   var AO3_ORIGIN = "https://archiveofourown.org";
-  var CHAPTER_DELAY_MS = 800;
+  var CHAPTER_DELAY_MS = 400;
+  /** Abort each AO3 fetch so a stuck network cannot hang the export forever. */
+  var FETCH_TIMEOUT_MS = 90000;
 
   function sleep(ms) {
     return new Promise(function (resolve) {
@@ -21,10 +23,31 @@
 
   function fetchAo3Html(path) {
     var url = path.indexOf("http") === 0 ? path : AO3_ORIGIN + path;
-    return fetch(url, { credentials: "include", redirect: "follow" }).then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
-      return res.text();
-    });
+    if (typeof AbortController === "undefined") {
+      return fetch(url, { credentials: "include", redirect: "follow" }).then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+        return res.text();
+      });
+    }
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () {
+      try {
+        ctrl.abort();
+      } catch (_) {}
+    }, FETCH_TIMEOUT_MS);
+    return fetch(url, { credentials: "include", redirect: "follow", signal: ctrl.signal })
+      .then(function (res) {
+        clearTimeout(timer);
+        if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+        return res.text();
+      })
+      .catch(function (e) {
+        clearTimeout(timer);
+        if (e && e.name === "AbortError") {
+          return Promise.reject(new Error("Request timed out after " + Math.round(FETCH_TIMEOUT_MS / 1000) + "s: " + url));
+        }
+        return Promise.reject(e);
+      });
   }
 
   function parseHtml(html) {
@@ -293,9 +316,13 @@
     var out = [];
     for (var i = 0; i < sel.options.length; i++) {
       var o = sel.options[i];
-      if (o.value && o.value !== "") {
-        out.push({ chapterId: o.value, label: (o.textContent || "").trim() });
-      }
+      // AO3 often includes an "Entire Work" option with value "0".
+      // Fetching /chapters/0 will 404 and can look like a hang, so skip it.
+      var v = (o.value != null) ? String(o.value).trim() : "";
+      if (!v) continue;
+      if (v === "0") continue;
+      if (!/^\d+$/.test(v)) continue;
+      out.push({ chapterId: v, label: (o.textContent || "").trim() });
     }
     return out;
   }
@@ -396,9 +423,7 @@
         }
       }
 
-      if (chapters.length === 0) {
-        chapters = [{ chapterId: null, label: "Chapter 1" }];
-      }
+      var shouldFetchFullWork = chapters.length === 0;
 
       var summaryHtml = getSummaryHtml(doc);
       var summaryMd = "";
@@ -418,32 +443,73 @@
       }
 
       function fetchOneChapter(ch, index) {
-        if (ch.chapterId) {
+        if (ch && ch.chapterId && /^\d+$/.test(String(ch.chapterId)) && String(ch.chapterId) !== "0") {
           return fetchAo3Html("/works/" + workId + "/chapters/" + ch.chapterId).then(function (chHtml) {
             var chDoc = parseHtml(chHtml);
             return extractChapterBody(chDoc);
           });
         }
-        if (index === 0) {
-          return Promise.resolve(extractChapterBody(doc));
+        if (shouldFetchFullWork) {
+          // Works with view_full_work=true are a single page containing all chapters.
+          return fetchAo3Html("/works/" + workId + "?view_full_work=true").then(function (fullHtml) {
+            var fullDoc = parseHtml(fullHtml);
+            var bodies = [];
+            var chapterEls = fullDoc.querySelectorAll("div#chapters div.chapter");
+            if (chapterEls && chapterEls.length) {
+              for (var i = 0; i < chapterEls.length; i++) {
+                var chap = chapterEls[i];
+                var titleEl = chap.querySelector("h3.title");
+                var title = titleEl ? (titleEl.textContent || "").trim() : ("Chapter " + (i + 1));
+                var userstuff = chap.querySelector("div.userstuff");
+                var md = userstuff ? htmlToMarkdown(userstuff.cloneNode(true)).replace(/\n{3,}/g, "\n\n").trim() : "";
+                bodies.push({ title: title, md: md });
+              }
+              return { multi: true, bodies: bodies };
+            }
+            // Fallback: at least try the first userstuff we can find.
+            return { multi: false, body: extractChapterBody(fullDoc) };
+          });
         }
-        return Promise.reject(new Error("Could not determine chapter URL for this work."));
+        if (index === 0) return Promise.resolve(extractChapterBody(doc));
+        return Promise.reject(new Error("Could not determine chapter URL(s) for this work."));
       }
 
       var chain = Promise.resolve();
-      chapters.forEach(function (ch, idx) {
+      if (shouldFetchFullWork) {
         chain = chain.then(function () {
-          if (idx > 0) return sleep(CHAPTER_DELAY_MS);
-        }).then(function () {
-          return fetchOneChapter(ch, idx);
-        }).then(function (body) {
-          var sep = (idx === 0) ? "" : "\n\n---\n\n";
-          var heading = body.title || ch.label || ("Chapter " + (idx + 1));
-          parts.push(sep + "## " + heading);
+          return fetchOneChapter(null, 0);
+        }).then(function (r) {
+          if (r && r.multi && Array.isArray(r.bodies)) {
+            r.bodies.forEach(function (body, idx) {
+              var sep = (idx === 0) ? "" : "\n\n---\n\n";
+              var heading = body.title || ("Chapter " + (idx + 1));
+              parts.push(sep + "## " + heading);
+              parts.push("");
+              parts.push(body.md || "");
+            });
+            return;
+          }
+          var single = r && r.body ? r.body : r;
+          var heading = (single && single.title) ? single.title : "Chapter 1";
+          parts.push("## " + heading);
           parts.push("");
-          parts.push(body.md || "");
+          parts.push((single && single.md) ? single.md : "");
         });
-      });
+      } else {
+        chapters.forEach(function (ch, idx) {
+          chain = chain.then(function () {
+            if (idx > 0) return sleep(CHAPTER_DELAY_MS);
+          }).then(function () {
+            return fetchOneChapter(ch, idx);
+          }).then(function (body) {
+            var sep = (idx === 0) ? "" : "\n\n---\n\n";
+            var heading = body.title || ch.label || ("Chapter " + (idx + 1));
+            parts.push(sep + "## " + heading);
+            parts.push("");
+            parts.push(body.md || "");
+          });
+        });
+      }
 
       return chain.then(function () {
         var markdown = parts.join("\n");
@@ -497,8 +563,173 @@
       }
       return true;
     }
+    if (message.type === "ao3ClipboardMarkdown") {
+      var fnameClip = (message.filename && String(message.filename)) || "export.md";
+      var clipResponded = false;
+      var clipHangGuard = setTimeout(function () {
+        if (clipResponded) return;
+        clipResponded = true;
+        try {
+          var stuck = document.getElementById("stn-ao3-clipboard-modal");
+          if (stuck) stuck.remove();
+        } catch (_) {}
+        sendResponse({ error: "Clipboard step timed out — try Save again or use Downloads." });
+      }, 600000);
+      function finishClip(ok, errMsg) {
+        if (clipResponded) return;
+        clipResponded = true;
+        try {
+          clearTimeout(clipHangGuard);
+        } catch (_) {}
+        if (ok) sendResponse({ ok: true });
+        else sendResponse({ error: errMsg || "Copy failed" });
+      }
+      /**
+       * Safari blocks "silent" clipboard from extension messages. Always show the modal so
+       * "Copy now" runs inside a real click. Do not call navigator.clipboard first — it can
+       * reject or hang and prevent the modal from appearing.
+       */
+      function showUserGestureCopyModal(onResult) {
+        var id = "stn-ao3-clipboard-modal";
+        try {
+          var old = document.getElementById(id);
+          if (old) old.remove();
+        } catch (_) {}
+        var wrap = document.createElement("div");
+        wrap.id = id;
+        wrap.style.cssText =
+          "position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif;";
+        var box = document.createElement("div");
+        box.style.cssText =
+          "background:#fff;border-radius:10px;max-width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.25);padding:16px;";
+        var h = document.createElement("p");
+        h.style.margin = "0 0 8px 0";
+        h.style.fontWeight = "600";
+        h.textContent = "Copy markdown for Obsidian";
+        var sub = document.createElement("p");
+        sub.style.margin = "0 0 12px 0";
+        sub.style.fontSize = "13px";
+        sub.style.color = "#444";
+        sub.textContent =
+          "Safari blocked automatic copy. Click “Copy now”, or focus the box and press ⌘A then ⌘C (" + fnameClip + ").";
+        var ta = document.createElement("textarea");
+        ta.value = mdClip;
+        ta.readOnly = true;
+        ta.style.cssText =
+          "width:100%;min-height:140px;max-height:45vh;font-size:12px;margin-bottom:12px;border:1px solid #ccc;border-radius:6px;padding:8px;box-sizing:border-box;";
+        var row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.gap = "8px";
+        row.style.justifyContent = "flex-end";
+        var btnCopy = document.createElement("button");
+        btnCopy.type = "button";
+        btnCopy.textContent = "Copy now";
+        btnCopy.style.cssText =
+          "padding:8px 14px;font-weight:600;border-radius:6px;border:1px solid #16a34a;background:#22c55e;color:#fff;cursor:pointer;";
+        var btnClose = document.createElement("button");
+        btnClose.type = "button";
+        btnClose.textContent = "Close";
+        btnClose.style.cssText = "padding:8px 14px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;";
+        var btnFinished = document.createElement("button");
+        btnFinished.type = "button";
+        btnFinished.textContent = "I copied (⌘C) — continue";
+        btnFinished.style.cssText = "padding:8px 14px;border-radius:6px;border:1px solid #86efac;background:#f0fdf4;cursor:pointer;";
+        btnFinished.title = "Use after you copied from the box or with ⌘A / ⌘C";
+        function cleanup() {
+          try {
+            wrap.remove();
+          } catch (_) {}
+        }
+        btnCopy.addEventListener("click", function () {
+          navigator.clipboard.writeText(mdClip).then(
+            function () {
+              cleanup();
+              onResult(true);
+            },
+            function () {
+              try {
+                ta.focus();
+                ta.select();
+                if (document.execCommand("copy")) {
+                  cleanup();
+                  onResult(true);
+                  return;
+                }
+              } catch (_) {}
+              sub.textContent =
+                "Automatic copy failed. Select all in the box (⌘A), copy (⌘C), then click Close when done.";
+            }
+          );
+        });
+        btnClose.addEventListener("click", function () {
+          cleanup();
+          onResult(false);
+        });
+        btnFinished.addEventListener("click", function () {
+          cleanup();
+          onResult(true);
+        });
+        row.appendChild(btnClose);
+        row.appendChild(btnFinished);
+        row.appendChild(btnCopy);
+        box.appendChild(h);
+        box.appendChild(sub);
+        box.appendChild(ta);
+        box.appendChild(row);
+        wrap.appendChild(box);
+        document.body.appendChild(wrap);
+        try {
+          ta.focus();
+          ta.select();
+        } catch (_) {}
+      }
+      function openClipboardUi(mdClip) {
+        if (!mdClip || typeof mdClip !== "string") {
+          finishClip(false, "No markdown to copy.");
+          return;
+        }
+        showUserGestureCopyModal(function (ok) {
+          if (ok) finishClip(true);
+          else finishClip(false, "Dismissed — use “Copy now” or ⌘A/⌘C, then “I copied — continue”.");
+        });
+      }
+      if (message.storageKey) {
+        var sess = browser.storage && browser.storage.session;
+        if (!sess || typeof sess.get !== "function") {
+          sendResponse({ error: "Storage unavailable — reload the AO3 page." });
+          return false;
+        }
+        sess
+          .get(message.storageKey)
+          .then(function (obj) {
+            var text = obj && obj[message.storageKey];
+            try {
+              if (typeof sess.remove === "function") sess.remove(message.storageKey);
+            } catch (_) {}
+            openClipboardUi(text);
+          })
+          .catch(function () {
+            finishClip(false, "Could not read saved export text.");
+          });
+        return true;
+      }
+      openClipboardUi(message.markdown);
+      return true;
+    }
     return false;
   });
+
+  function sendAo3ExportTriggerMessage() {
+    var ext = typeof browser !== "undefined" ? browser : typeof chrome !== "undefined" ? chrome : null;
+    if (!ext || !ext.runtime) return Promise.reject(new Error("Extension runtime unavailable."));
+    if (ext.tabs && typeof ext.tabs.query === "function") {
+      return ext.tabs.query({ active: true, currentWindow: true }).then(function (tabs) {
+        var tid = tabs && tabs[0] && typeof tabs[0].id === "number" ? tabs[0].id : undefined;
+        return ext.runtime.sendMessage({ type: "ao3ExportTrigger", tabId: tid });
+      });
+    }
+    return ext.runtime.sendMessage({ type: "ao3ExportTrigger" });
+  }
 
   function injectAo3FloatingButton() {
     try {
@@ -525,35 +756,70 @@
         btn.disabled = true;
         btn.classList.remove("stn-ao3-success", "stn-ao3-error");
         btn.textContent = "Saving…";
-        browser.runtime
-          .sendMessage({ type: "ao3ExportTrigger" })
+        function showAo3Error(fullMsg) {
+          var msg = fullMsg ? String(fullMsg) : "Export failed";
+          btn.classList.add("stn-ao3-error");
+          btn.title = msg;
+          btn.setAttribute("aria-label", msg);
+          var short = msg.length > 42 ? msg.slice(0, 40) + "…" : msg;
+          btn.textContent = short;
+          btn.disabled = false;
+          setTimeout(function () {
+            btn.classList.remove("stn-ao3-error");
+            btn.textContent = "Save to Obsidian";
+            btn.title = "";
+            btn.setAttribute("aria-label", "Save AO3 work to Obsidian markdown");
+          }, 8000);
+        }
+        function clearUiTimers() {
+          try {
+            if (slowHint) clearTimeout(slowHint);
+          } catch (_) {}
+          try {
+            if (uiHangGuard) clearTimeout(uiHangGuard);
+          } catch (_) {}
+        }
+        var slowHint = setTimeout(function () {
+          if (btn.textContent === "Saving…") btn.textContent = "Still exporting…";
+        }, 120000);
+        var uiHangGuard = setTimeout(function () {
+          clearUiTimers();
+          if (btn.disabled && (btn.textContent === "Saving…" || btn.textContent === "Still exporting…")) {
+            btn.disabled = false;
+            showAo3Error("No reply from extension — reload this page, then try again.");
+          }
+        }, 960000);
+        sendAo3ExportTriggerMessage()
           .then(function (r) {
+            clearUiTimers();
             if (r && r.ok) {
+              try {
+                console.info("[STN AO3] Export OK", r);
+              } catch (_) {}
               btn.classList.add("stn-ao3-success");
               btn.textContent = "Saved";
+              btn.title = "Check Downloads → ao3 (or your browser download folder)";
               setTimeout(function () {
                 btn.disabled = false;
                 btn.classList.remove("stn-ao3-success");
                 btn.textContent = "Save to Obsidian";
+                btn.title = "";
               }, 2200);
             } else {
-              btn.classList.add("stn-ao3-error");
-              btn.textContent = "Failed";
-              btn.disabled = false;
-              setTimeout(function () {
-                btn.classList.remove("stn-ao3-error");
-                btn.textContent = "Save to Obsidian";
-              }, 2200);
+              var errMsg = (r && r.error) ? r.error : "Unknown error";
+              try {
+                console.warn("[STN AO3] Export failed:", errMsg, r);
+              } catch (_) {}
+              showAo3Error(errMsg);
             }
           })
-          .catch(function () {
-            btn.classList.add("stn-ao3-error");
-            btn.textContent = "Failed";
-            btn.disabled = false;
-            setTimeout(function () {
-              btn.classList.remove("stn-ao3-error");
-              btn.textContent = "Save to Obsidian";
-            }, 2200);
+          .catch(function (err) {
+            clearUiTimers();
+            try {
+              console.warn("[STN AO3] sendMessage failed:", err);
+            } catch (_) {}
+            var m = err && err.message ? String(err.message) : "Message to extension failed — reload this tab and try again.";
+            showAo3Error(m);
           });
       });
       document.body.appendChild(btn);

@@ -9,8 +9,18 @@
     "tabs",
     "scripting",
     "nativeMessaging",
-    "notifications"
+    "notifications",
+    "downloads",
+    "declarativeNetRequest",
+    "offscreen"
   ],
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "cors_rules",
+      "enabled": true,
+      "path": "cors-rules.json"
+    }]
+  },
   "host_permissions": [
     "https://api.deepseek.com/*",
     "https://api.notion.com/*",

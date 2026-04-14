@@ -2,10 +2,119 @@
  * Background service worker: DeepSeek translation, Notion save, storage.
  */
 
+// Chrome has no native messaging host; Safari uses it — skip the shim there.
+//
+// Chrome blocks CORS preflights from extension origins when the server returns
+// a non-2xx response for OPTIONS. declarativeNetRequest rules run AFTER the
+// browser decides whether to send a preflight, so: omit all non-simple headers
+// from the JS fetch (preventing the preflight), and inject them via dynamic
+// declarativeNetRequest rules (which fire before the request reaches the network).
+// The static cors-rules.json adds Access-Control-Allow-Origin:* to responses.
+(function () {
+  var ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  var isSafari = /Safari/i.test(ua) && !/Chrome/i.test(ua);
+  if (isSafari) return;
+
+  var _origSendNative = browser.runtime.sendNativeMessage.bind(browser.runtime);
+  browser.runtime.sendNativeMessage = function (appId, message) {
+    if (message && message.type === "apiRequest") {
+      // No Authorization / Content-Type / Notion-Version headers here —
+      // they are injected by updateChromeAuthRules() dynamic rules below.
+      // Keeping them absent makes this a "simple" request with no preflight.
+      return fetch(message.url, {
+        method: message.method || "GET",
+        body: message.body != null ? message.body : undefined,
+      }).then(function (res) {
+        var status = res.status;
+        return res.text().then(function (text) {
+          return { status: status, body: text };
+        });
+      });
+    }
+    return _origSendNative(appId, message);
+  };
+})();
+
 const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 const NOTION_URL = "https://api.notion.com/v1/pages";
 const NOTION_API_BASE = "https://api.notion.com/v1";
 const DEFAULT_TARGET_LANG = "Simplified Chinese";
+
+// Ensure the offscreen document exists (Chrome only; Safari ignores this).
+// The offscreen page makes fetch calls from a document context where
+// declarativeNetRequest rules (auth header injection + CORS response headers)
+// are applied — unlike service worker fetches which DNR does not intercept.
+function ensureOffscreen() {
+  if (typeof chrome === "undefined" || !chrome.offscreen || !chrome.offscreen.createDocument) {
+    return Promise.resolve();
+  }
+  function createDoc() {
+    return chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["DOM_PARSER"],
+      justification: "Proxy fetch requests to bypass CORS in service worker context",
+    }).catch(function (e) {
+      // If it already exists, we are fine.
+      var msg = (e && e.message) ? String(e.message) : "";
+      if (/already exists|Only a single offscreen document/i.test(msg)) return;
+      throw e;
+    });
+  }
+  // Older Chrome builds do not expose hasDocument().
+  if (typeof chrome.offscreen.hasDocument !== "function") {
+    return createDoc();
+  }
+  return chrome.offscreen.hasDocument().then(function (exists) {
+    if (exists) return;
+    return createDoc();
+  });
+}
+
+function offscreenFetch(message) {
+  return ensureOffscreen().then(function () {
+    return browser.runtime.sendMessage(message);
+  }).then(function (res) {
+    if (!res) throw new Error("No response from offscreen document.");
+    if (res.error) throw new Error(String(res.error));
+    return res;
+  });
+}
+
+// Inject auth headers via declarativeNetRequest dynamic rules so the JS fetch
+// call can omit them (keeping the request "simple" → no CORS preflight).
+function updateChromeAuthRules(notionToken, deepseekApiKey) {
+  if (typeof chrome === "undefined" || !chrome.declarativeNetRequest || !chrome.declarativeNetRequest.updateDynamicRules) return;
+  var rules = [];
+  if (notionToken && notionToken.trim()) {
+    rules.push({
+      id: 9001, priority: 10,
+      action: {
+        type: "modifyHeaders",
+        requestHeaders: [
+          { header: "Authorization",  operation: "set", value: "Bearer " + notionToken.trim() },
+          { header: "Content-Type",   operation: "set", value: "application/json" },
+          { header: "Notion-Version", operation: "set", value: "2022-06-28" },
+        ],
+      },
+      condition: { urlFilter: "||api.notion.com", resourceTypes: ["xmlhttprequest", "other"] },
+    });
+  }
+  if (deepseekApiKey && deepseekApiKey.trim()) {
+    rules.push({
+      id: 9002, priority: 10,
+      action: {
+        type: "modifyHeaders",
+        requestHeaders: [
+          { header: "Authorization", operation: "set", value: "Bearer " + deepseekApiKey.trim() },
+          { header: "Content-Type",  operation: "set", value: "application/json" },
+        ],
+      },
+      condition: { urlFilter: "||api.deepseek.com", resourceTypes: ["xmlhttprequest", "other"] },
+    });
+  }
+  chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [9001, 9002], addRules: rules })
+    .catch(function (e) { console.warn("updateChromeAuthRules:", e); });
+}
 
 function getStoredOptions() {
   return browser.storage.local.get({
@@ -14,6 +123,7 @@ function getStoredOptions() {
     notionDatabaseId: "",
     targetLanguage: DEFAULT_TARGET_LANG,
     maxSelectionLength: 120,
+    ao3ExportRelPath: "vocab_dump/ao3",
   });
 }
 
@@ -776,44 +886,196 @@ function isAo3WorkUrl(url) {
   return /^https?:\/\/archiveofourown\.org\/works\/\d+/i.test(url);
 }
 
+function runtimeLastErrorMessage() {
+  try {
+    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.lastError) {
+      return chrome.runtime.lastError.message || "";
+    }
+    if (typeof browser !== "undefined" && browser.runtime && browser.runtime.lastError) {
+      return browser.runtime.lastError.message || "";
+    }
+  } catch (_) {}
+  return "";
+}
+
+/** Max data-URL size for downloads.download (stay under typical browser limits). */
+var AO3_DATA_URL_MAX = 1800000;
+
 function saveAo3MarkdownAfterExport(tab, md, base) {
   var api = extApi();
-  var relPath = "ao3/" + base + ".md";
-  return browser.runtime
-    .sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
-      type: "saveFileToDownloads",
-      relativePath: relPath,
-      content: md,
-    })
-    .then(function (res) {
-      if (res && res.ok) {
-        ao3Notify("AO3 export", "Saved: " + (res.path || relPath));
-        return;
-      }
-      if (res && res.error) throw new Error(res.error);
-      throw new Error("Native save failed");
-    })
-    .catch(function () {
-      return api.tabs.sendMessage(tab.id, {
+  var filename = base + ".md";
+  return getStoredOptions().catch(function () { return {}; }).then(function (opts) {
+  var configured = (opts.ao3ExportRelPath || "").trim();
+  var relPath = configured
+    ? configured.replace(/\/+$/, "") + "/" + filename
+    : "ao3/" + filename;
+
+  function tryNative() {
+    return browser.runtime
+      .sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+        type: "saveFileToDownloads",
+        relativePath: relPath,
+        content: md,
+      })
+      .then(function (res) {
+        if (res && res.ok) {
+          ao3Notify("AO3 export", "Saved: " + (res.path || relPath));
+          return;
+        }
+        if (res && res.error) throw new Error(res.error);
+        throw new Error("Native save failed");
+      });
+  }
+
+  function tryDownloadsApi() {
+    if (!api || !api.downloads || typeof api.downloads.download !== "function") {
+      return Promise.reject(new Error("downloads API unavailable"));
+    }
+    var dataUrl = "data:text/markdown;charset=utf-8," + encodeURIComponent(md);
+    if (dataUrl.length > AO3_DATA_URL_MAX) {
+      return Promise.reject(new Error("Export too large for Downloads API; trying other methods."));
+    }
+    var opts = {
+      url: dataUrl,
+      filename: relPath,
+      saveAs: false,
+    };
+    var p = api.downloads.download(opts);
+    if (p && typeof p.then === "function") {
+      return p.then(function () {
+        var err = runtimeLastErrorMessage();
+        if (err) throw new Error(err);
+        ao3Notify("AO3 export", "Saved under Downloads: " + relPath);
+      });
+    }
+    return new Promise(function (resolve, reject) {
+      api.downloads.download(opts, function () {
+        var err = runtimeLastErrorMessage();
+        if (err) reject(new Error(err));
+        else {
+          ao3Notify("AO3 export", "Saved under Downloads: " + relPath);
+          resolve();
+        }
+      });
+    });
+  }
+
+  function tryAnchor() {
+    return api.tabs
+      .sendMessage(tab.id, {
         type: "ao3AnchorDownload",
         markdown: md,
-        filename: base + ".md",
+        filename: filename,
+      })
+      .then(function (anchorRes) {
+        if (anchorRes && anchorRes.error) throw new Error(anchorRes.error);
+        if (anchorRes && anchorRes.ok) {
+          ao3Notify("AO3 export", "Download started: " + filename + " (check Downloads).");
+          return;
+        }
+        throw new Error("Anchor download failed");
       });
+  }
+
+  /** Prefer session storage so huge markdown never goes through sendMessage (Safari can drop it). */
+  function tryClipboard() {
+    function sendClipToTab(payload) {
+      return api.tabs.sendMessage(tab.id, Object.assign({ type: "ao3ClipboardMarkdown", filename: filename }, payload));
+    }
+    var p;
+    if (api.storage && api.storage.session) {
+      var sk = "stn_ao3_clip_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+      p = api.storage.session
+        .set({ [sk]: md })
+        .then(function () {
+          return sendClipToTab({ storageKey: sk });
+        })
+        .catch(function () {
+          return sendClipToTab({ markdown: md });
+        });
+    } else {
+      p = sendClipToTab({ markdown: md });
+    }
+    return p.then(function (cr) {
+      if (cr && cr.error) throw new Error(cr.error);
+      if (cr && cr.ok) {
+        ao3Notify("AO3 export", "Copied to clipboard — paste into a note in your vault (" + filename + ").");
+        return;
+      }
+      throw new Error(cr && cr.error ? cr.error : "Clipboard step returned no result — reload the AO3 tab.");
+    });
+  }
+
+  return tryNative()
+    .catch(function () {
+      return tryDownloadsApi();
     })
-    .then(function (anchorRes) {
-      if (anchorRes === undefined) {
-        return;
-      }
-      if (anchorRes && anchorRes.error) {
-        throw new Error(anchorRes.error);
-      }
-      if (anchorRes && anchorRes.ok) {
-        ao3Notify("AO3 export", "Download started: " + base + ".md (check Downloads).");
-        return;
-      }
-      throw new Error("Save failed");
+    .catch(function () {
+      return tryAnchor();
+    })
+    .catch(function () {
+      return tryClipboard();
+    });
+  }); // end getStoredOptions().then()
+}
+
+function getAo3ExportPayloadViaExecuteScript(tab) {
+  var api = extApi();
+  if (!api.scripting || typeof api.scripting.executeScript !== "function") {
+    return Promise.reject(new Error("Exporter fallback unavailable — reload the AO3 tab."));
+  }
+  return api.scripting
+    .executeScript({
+      target: { tabId: tab.id },
+      func: function () {
+        if (typeof window.__ao3ExportWork !== "function") {
+          throw new Error("AO3 exporter not loaded — reload this page.");
+        }
+        return window.__ao3ExportWork();
+      },
+    })
+    .then(function (results) {
+      var out = results && results[0] && results[0].result;
+      if (!out) throw new Error("No export result — reload the AO3 tab.");
+      if (out.error) throw new Error(typeof out.error === "string" ? out.error : "Export failed.");
+      if (typeof out.markdown !== "string") throw new Error("Empty export.");
+      return out;
     });
 }
+
+function getAo3ExportPayloadFromPage(tab) {
+  var api = extApi();
+  return api.tabs
+    .sendMessage(tab.id, { type: "ao3ExportStart" })
+    .then(function (res) {
+      if (res && res.error) throw new Error(res.error);
+      if (res && typeof res.markdown === "string") return res;
+      throw new Error("NO_PAGE_RESPONSE");
+    })
+    .catch(function (err) {
+      var m = err && err.message ? String(err.message) : "";
+      if (
+        /Receiving end does not exist|Could not establish connection|The message port closed|NO_PAGE_RESPONSE/i.test(m)
+      ) {
+        return getAo3ExportPayloadViaExecuteScript(tab);
+      }
+      throw err;
+    });
+}
+
+function ao3PromiseWithTimeout(promise, ms, timeoutMessage) {
+  return Promise.race([
+    promise,
+    new Promise(function (_, reject) {
+      setTimeout(function () {
+        reject(new Error(timeoutMessage || "Timed out."));
+      }, ms);
+    }),
+  ]);
+}
+
+/** Whole export (fetch chapters + save) must finish or Safari never calls sendResponse → UI hangs. */
+var AO3_EXPORT_MAX_MS = 900000;
 
 function runAo3ExportForTab(tab) {
   var api = extApi();
@@ -826,51 +1088,74 @@ function runAo3ExportForTab(tab) {
     ao3Notify("AO3 export", "Open a work page first (URL must contain /works/123…).");
     return Promise.reject(new Error("Not an AO3 work page."));
   }
-  return api.tabs
-    .sendMessage(tab.id, { type: "ao3ExportStart" })
-    .then(function (res) {
-      if (!res) throw new Error("No response from page. Reload the AO3 tab and try again.");
-      if (res.error) throw new Error(res.error);
+  return ao3PromiseWithTimeout(
+    getAo3ExportPayloadFromPage(tab).then(function (res) {
       var md = res.markdown;
       if (!md || typeof md !== "string") throw new Error("Empty export.");
       var base = sanitizeAo3DownloadBasename(res.basename || "ao3-work");
       return saveAo3MarkdownAfterExport(tab, md, base);
-    })
-    .catch(function (err) {
-      var msg = err && err.message ? err.message : String(err);
-      if (/Receiving end does not exist|Could not establish connection/i.test(msg)) {
-        msg = "Page not ready. Reload the AO3 tab, then try again.";
-      }
-      console.error("AO3 export:", msg);
-      ao3Notify("AO3 export failed", msg);
-      return Promise.reject(err);
-    });
+    }),
+    AO3_EXPORT_MAX_MS,
+    "Export timed out after 15 minutes. Reload the tab, check the network, or try a shorter work."
+  ).catch(function (err) {
+    var msg = err && err.message ? err.message : String(err);
+    console.error("AO3 export:", msg);
+    ao3Notify("AO3 export failed", msg);
+    return Promise.reject(err);
+  });
 }
+
+// On startup, populate Chrome auth rules from stored tokens.
+getStoredOptions().then(function (opts) {
+  updateChromeAuthRules(opts.notionToken, opts.deepseekApiKey);
+}).catch(function () {});
+
+// Re-apply whenever tokens change (e.g. user saves new keys in Options).
+browser.storage.onChanged.addListener(function (changes) {
+  if (changes.notionToken || changes.deepseekApiKey) {
+    getStoredOptions().then(function (opts) {
+      updateChromeAuthRules(opts.notionToken, opts.deepseekApiKey);
+    }).catch(function () {});
+  }
+});
 
 browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   function reply(value) {
     try { sendResponse(value); } catch (_) {}
   }
 
+  // Let the offscreen document handle its own messages — don't respond here.
+  if (message.type === "__offscreenFetch__") return false;
+
   if (message.type === "ao3ExportTrigger") {
     var finish = function (tab) {
+      if (!tab || tab.id == null) {
+        reply({ ok: false, error: "Could not find this tab. Reload the AO3 page and try again." });
+        return;
+      }
       runAo3ExportForTab(tab).then(
         function () {
           reply({ ok: true });
         },
-        function () {
-          reply({ ok: false });
+        function (err) {
+          var msg = err && err.message ? String(err.message) : "Export failed.";
+          reply({ ok: false, error: msg });
         }
       );
     };
-    if (sender.tab) {
+    var apiTabs = extApi().tabs;
+    if (sender.tab && sender.tab.id != null) {
       finish(sender.tab);
-    } else {
-      extApi()
-        .tabs.query({ active: true, currentWindow: true })
-        .then(function (tabs) {
+    } else if (typeof message.tabId === "number" && apiTabs && typeof apiTabs.get === "function") {
+      apiTabs.get(message.tabId).then(finish).catch(function () {
+        apiTabs.query({ active: true, currentWindow: true }).then(function (tabs) {
           finish(tabs && tabs[0]);
         });
+      });
+    } else {
+      apiTabs.query({ active: true, currentWindow: true }).then(function (tabs) {
+        finish(tabs && tabs[0]);
+      });
     }
     return true;
   }
@@ -1062,6 +1347,100 @@ browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       .then(reply)
       .catch(function (err) {
         reply({ error: (err && err.message) ? err.message : "Writing support failed." });
+      });
+    return true;
+  }
+
+  // ── Obsidian sync: query unimported pages from Notion ──────────────────
+  // Route through the offscreen document so the fetch originates from a
+  // document context (resource type "xmlhttprequest"), where declarativeNetRequest
+  // rules apply. Service worker fetches are NOT intercepted by DNR.
+  if (message.type === "syncQueryPages") {
+    getStoredOptions()
+      .then(function (opts) {
+        var token = (message.token && String(message.token).trim()) ||
+          ((opts.notionToken && opts.notionToken.trim()) ? opts.notionToken.trim() : "");
+        var dbId = normalizeDatabaseId(message.databaseId || opts.notionDatabaseId);
+        if (!token) throw new Error("Set your Notion integration token in extension options.");
+        if (!dbId) throw new Error("Set your Notion Database ID in extension options.");
+        var all = [];
+        var cursor = null;
+        function nextPage() {
+          var body = {
+            page_size: 100,
+            filter: { property: "Imported", checkbox: { equals: false } },
+            sorts: [{ timestamp: "created_time", direction: "ascending" }],
+          };
+          if (cursor) body.start_cursor = cursor;
+          return offscreenFetch({
+            type: "__offscreenFetch__",
+            url: NOTION_API_BASE + "/databases/" + dbId + "/query",
+            method: "POST",
+            body: JSON.stringify(body),
+          }).then(function (res) {
+            if (res.status < 200 || res.status >= 300) {
+              throw new Error("Notion query failed (" + res.status + "): " + (res.body || "").slice(0, 300));
+            }
+            var data = JSON.parse(res.body || "{}");
+            var results = Array.isArray(data.results) ? data.results : [];
+            all = all.concat(results);
+            if (data.has_more && data.next_cursor) {
+              cursor = data.next_cursor;
+              return nextPage();
+            }
+          });
+        }
+        return nextPage().then(function () { return all; });
+      })
+      .then(function (pages) { reply({ pages: pages }); })
+      .catch(function (err) {
+        console.error("[syncQueryPages] error:", err);
+        reply({ error: (err && err.message) ? err.message : "Query failed" });
+      });
+    return true;
+  }
+
+  // ── Obsidian sync: mark a page as imported ────────────────────────────
+  if (message.type === "syncMarkImported") {
+    var markPageId = message.pageId;
+    getStoredOptions()
+      .then(function (opts) {
+        var token = (message.token && String(message.token).trim()) ||
+          ((opts.notionToken && opts.notionToken.trim()) ? opts.notionToken.trim() : "");
+        if (!token) throw new Error("Set your Notion integration token in extension options.");
+        var patchBody = JSON.stringify({ properties: { Imported: { checkbox: true } } });
+        // Primary path: offscreen fetch (Chrome).
+        return offscreenFetch({
+          type: "__offscreenFetch__",
+          url: NOTION_API_BASE + "/pages/" + markPageId,
+          method: "PATCH",
+          body: patchBody,
+        }).catch(function (err) {
+          // Fallback: native apiRequest pipeline (Safari native host / Chrome shim).
+          var msg = err && err.message ? String(err.message) : "";
+          if (!/Failed to fetch|NetworkError|No response from offscreen/i.test(msg)) throw err;
+          return browser.runtime.sendNativeMessage("com.yourCompany.Translate---Save-to-Notion", {
+            type: "apiRequest",
+            url: NOTION_API_BASE + "/pages/" + markPageId,
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + token,
+              "Notion-Version": "2022-06-28",
+            },
+            body: patchBody,
+          });
+        });
+      })
+      .then(function (res) {
+        if (!res) throw new Error("syncMarkImported: no response");
+        if (res.error) throw new Error("syncMarkImported: " + String(res.error));
+        if (res.status < 200 || res.status >= 300) throw new Error("Failed to mark page imported (" + res.status + ")");
+        reply({ ok: true });
+      })
+      .catch(function (err) {
+        console.error("[syncMarkImported] error:", err);
+        reply({ error: (err && err.message) ? err.message : "Mark imported failed" });
       });
     return true;
   }

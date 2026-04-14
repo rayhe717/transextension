@@ -41,12 +41,34 @@
         <p class="hint">Ignore selections longer than this (default: 120).</p>
       </section>
 
+      <section>
+        <h2>Obsidian Sync</h2>
+
+        <label>Sync path</label>
+        <div class="path-row">
+          <div id="vaultFolderName" class="vault-folder-display">No vault selected</div>
+          <span class="path-sep">/</span>
+          <input type="text" id="obsidianVocabFolder" name="obsidianVocabFolder" placeholder="Vocab_ao3" class="path-subfolder">
+          <button type="button" id="pickVaultBtn" class="btn-outline">Change</button>
+        </div>
+
+        <label for="ao3ExportRelPath">AO3 export path</label>
+        <input type="text" id="ao3ExportRelPath" name="ao3ExportRelPath" placeholder="vocab_dump/ao3">
+        <p class="hint">Relative to your Downloads folder.</p>
+      </section>
+
       <div class="actions">
-        <button type="submit" id="save-btn">Save settings</button>
-        <span id="status" class="status"></span>
+        <button type="submit" id="save-btn" class="btn-action">Save settings</button>
+        <button type="button" id="syncNowBtn" class="btn-action" disabled>Sync to Obsidian</button>
+        <button type="button" id="linkWordsBtn" class="btn-action btn-action--purple" disabled>Link Words</button>
       </div>
+      <p id="status" class="status"></p>
+      <p id="syncLog" class="action-status"></p>
+      <p id="linkWordsLog" class="action-status"></p>
     </form>
   </div>
+  <script src="obsidian-sync.js"></script>
+  <script src="link-words.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

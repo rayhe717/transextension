@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-translation",
+  "name": "Obsidian Translation Tooltip",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Translate selected text with DeepSeek and save directly to Obsidian vocab notes.",
+  "author": "asteray",
+  "isDesktopOnly": false
+}

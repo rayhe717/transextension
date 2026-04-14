@@ -155,6 +155,70 @@
     };
   }
 
+  function buildSensesFromPayload(payload) {
+    var word = payload.original || "";
+    var baseForm = payload.base_form || word;
+    var notes = payload.notes || "";
+    if (payload.meanings && payload.meanings.length) {
+      return payload.meanings.map(function (m) {
+        return {
+          pageId: "",
+          word: word,
+          baseForm: baseForm,
+          translation: m.translation || "",
+          sense: m.sense || "",
+          synonyms: Array.isArray(m.synonyms) ? m.synonyms : [],
+          wordClass: m.word_class || "",
+          notes: notes,
+          writerTaxonomy: null,
+        };
+      });
+    }
+    return [{
+      pageId: "",
+      word: word,
+      baseForm: baseForm,
+      translation: payload.translation || "",
+      sense: "",
+      synonyms: Array.isArray(payload.synonyms) ? payload.synonyms : [],
+      wordClass: payload.word_class || "",
+      notes: notes,
+      writerTaxonomy: null,
+    }];
+  }
+
+  function writeToVault(payload) {
+    if (!window.ObsidianSync) return Promise.resolve({ skipped: true });
+    return ObsidianSync.loadVaultHandle().then(function (rootHandle) {
+      if (!rootHandle) return { skipped: true };
+      return rootHandle.queryPermission({ mode: "readwrite" }).then(function (perm) {
+        if (perm === "granted") return perm;
+        return rootHandle.requestPermission({ mode: "readwrite" });
+      }).then(function (perm) {
+        if (perm !== "granted") return { skipped: true };
+        return browser.storage.local.get({ obsidianVocabFolder: "Vocab_ao3" }).then(function (items) {
+          var vocabFolder = items.obsidianVocabFolder || "Vocab_ao3";
+          return rootHandle.getDirectoryHandle(vocabFolder, { create: true }).then(function (subDirHandle) {
+            var senses = buildSensesFromPayload(payload);
+            var written = 0;
+            return senses.reduce(function (chain, sense) {
+              return chain.then(function () {
+                return ObsidianSync.upsertSenseNote({ subDirHandle: subDirHandle, sense: sense }).then(function (r) {
+                  if (r.changed) written++;
+                });
+              });
+            }, Promise.resolve()).then(function () {
+              return { written: written, rootDirHandle: rootHandle };
+            });
+          });
+        });
+      });
+    }).catch(function (err) {
+      console.error("writeToVault error:", err);
+      return { skipped: true };
+    });
+  }
+
   function save() {
     var payload = currentPayload && currentPayload.meanings ? getSelectedMeaningsPayload() : (currentPayload || null);
     if (!payload) {
@@ -177,9 +241,19 @@
           return;
         }
         var count = (response && response.count) ? response.count : 1;
-        setStatus("Saved " + count + (count === 1 ? " entry" : " entries") + " to Notion.", "success");
         var alsoIn = response && response.alsoSynonymIn && response.alsoSynonymIn.length > 0 ? response.alsoSynonymIn : null;
         showAlsoSynonymIn(alsoIn);
+        writeToVault(payload).then(function (vaultResult) {
+          var wroteToVault = vaultResult && vaultResult.written > 0;
+          var base = "Saved " + count + (count === 1 ? " entry" : " entries") + " to Notion" + (wroteToVault ? " + Obsidian" : "") + ".";
+          setStatus(base, "success");
+
+          if (wroteToVault && window.LinkWords && vaultResult.rootDirHandle) {
+            LinkWords.linkVocabEntries(vaultResult.rootDirHandle, function () {}).then(function () {
+              setStatus(base + " Links updated.", "success");
+            }).catch(function () {});
+          }
+        });
       })
       .catch(function (err) {
         translateBtn.disabled = false;
@@ -284,4 +358,6 @@
       else save();
     }
   });
+
+
 })();
